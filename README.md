@@ -3,7 +3,7 @@
 # An LLM-Powered Stock Trading Benchmark Platform
 <p align="center">
   <a href="https://stockbench.github.io/">Website</a> •
-  <a href="">Paper</a> •
+  <a href="">https://arxiv.org/abs/2510.02209</a> •
   <a href="https://github.com/ChenYXxxx/stockbench">Github</a> 
 </p>
 
