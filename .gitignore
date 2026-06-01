@@ -5,6 +5,7 @@ __pycache__/
 logs/
 storage/logs/
 storage/reports/
+storage/tmp/
 storage/cache/llm/
 
 # Runtime-expanded API/data caches. Existing tracked files remain tracked;
