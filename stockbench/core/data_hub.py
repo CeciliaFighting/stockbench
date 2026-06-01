@@ -750,20 +750,48 @@ def cache_daily_bars_yfinance(symbols: List[str], start: str, end: str, auto_adj
         group_by="ticker",
         auto_adjust=bool(auto_adjust),
         actions=False,
-        threads=True,
+        threads=False,
         progress=False,
         repair=False,
     )
 
-    counts: Dict[str, int] = {}
-    for symbol in sym_list:
-        symbol_raw = _extract_yfinance_symbol_frame(raw, symbol, single_symbol=(len(sym_list) == 1))
+    def cache_symbol(symbol: str, source: pd.DataFrame, single_symbol: bool) -> int:
+        symbol_raw = _extract_yfinance_symbol_frame(source, symbol, single_symbol=single_symbol)
         df = _normalize_yfinance_day_frame(symbol_raw)
         df = _filter_day_by_date(df, start, end, symbol)
         if not df.empty:
             _write_partitioned_parquet(df, symbol, granularity="day")
-        counts[symbol] = int(len(df))
-        logger.info(f"[YFINANCE] Cached {symbol}: {counts[symbol]} daily rows")
+        return int(len(df))
+
+    counts: Dict[str, int] = {}
+    for symbol in sym_list:
+        counts[symbol] = cache_symbol(symbol, raw, single_symbol=(len(sym_list) == 1))
+
+    # yfinance multi-ticker downloads can partially fail due to Yahoo/curl/TLS
+    # flakiness. Retry zero-row symbols individually before giving up.
+    missing = [symbol for symbol, count in counts.items() if count == 0]
+    if missing and len(sym_list) > 1:
+        logger.info(f"[YFINANCE] Retrying {len(missing)} zero-row symbols individually: {missing}")
+        for symbol in missing:
+            try:
+                raw_single = yf.download(
+                    tickers=symbol,
+                    start=start,
+                    end=end_exclusive,
+                    interval="1d",
+                    group_by="ticker",
+                    auto_adjust=bool(auto_adjust),
+                    actions=False,
+                    threads=False,
+                    progress=False,
+                    repair=False,
+                )
+                counts[symbol] = cache_symbol(symbol, raw_single, single_symbol=True)
+            except Exception as exc:
+                logger.warning(f"[YFINANCE] Single-symbol retry failed for {symbol}: {exc}")
+
+    for symbol in sym_list:
+        logger.info(f"[YFINANCE] Cached {symbol}: {counts.get(symbol, 0)} daily rows")
     return counts
 
 
