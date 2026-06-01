@@ -32,7 +32,7 @@ def main(
     # Agent mode selection
     agent_mode: str = typer.Option(None, help="Agent mode: dual|single (use config if empty)"),
     # LLM profile switching
-    llm_profile: str = typer.Option(None, help="Select LLM profile to override llm section: openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
+    llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
     # News sentiment aggregation
     news_agg: str = typer.Option(None, help="News sentiment aggregation: mean|median|trimmed_mean (use config if empty)"),
     news_trim_alpha: float = typer.Option(None, help="News sentiment trimmed mean parameter alpha (0.0~0.49, use config if empty)"),
@@ -64,17 +64,19 @@ def main(
         config = yaml.safe_load(f)
 
     setup_json_logging(config)
-    # Apply data mode (CLI overrides config and env)
+    # Apply data mode (CLI overrides config and env). Keep config in sync because
+    # data_hub helpers receive cfg and prefer cfg["data"]["mode"] over globals.
     try:
+        effective_data_mode = None
         if offline:
-            set_data_mode("offline_only")
+            effective_data_mode = "offline_only"
         elif data_mode:
-            set_data_mode(str(data_mode))
+            effective_data_mode = str(data_mode)
         else:
-            # Also respect config.data.mode if provided
-            dm = ((config.get("data", {}) or {}).get("mode", None))
-            if dm:
-                set_data_mode(str(dm))
+            effective_data_mode = ((config.get("data", {}) or {}).get("mode", None))
+        if effective_data_mode:
+            set_data_mode(str(effective_data_mode))
+            config.setdefault("data", {})["mode"] = str(effective_data_mode)
     except Exception:
         pass
     m = Metrics()
@@ -94,14 +96,13 @@ def main(
     except Exception:
         pass
     
-    # LLM profile override - use openai profile by default
+    # LLM profile override - use EFundGPT profile by default.
     profiles = (config.get("llm_profiles", {}) or {})
-    if llm_profile:
-        prof = profiles.get(str(llm_profile).lower())
-    else:
-        # Use openai profile by default
-        prof = profiles.get("openai")
-    
+    profile_key = str(llm_profile or "efund").lower()
+    if profile_key == "efund":
+        profile_key = "efundgpt"
+    prof = profiles.get(profile_key)
+
     if isinstance(prof, dict) and prof:
         config["llm"] = {**(config.get("llm", {}) or {}), **prof}
 

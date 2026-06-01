@@ -46,25 +46,13 @@ def run_backtest(cfg: Dict, strategy, start: str, end: str, symbols: List[str], 
             "run_id": run_id or os.path.basename(out_dir),
             "symbols": symbols,
         }
-        # Get LLM profile name from configuration
-        profile_name = None
-        try:
-            profiles = cfg.get("llm_profiles", {})
-            if profiles:
-                # Prioritize openai profile (if exists)
-                if "openai" in profiles:
-                    profile_name = "openai"
-                else:
-                    # Otherwise use the first available profile
-                    profile_name = next(iter(profiles.keys()))
-        except Exception:
-            pass
-            
-        text = generate_backtest_report(payload, cfg=cfg, run_id=run_id, profile_name=profile_name)
-        nl_path = os.path.join(out_dir, "nl_summary.txt")
-        with open(nl_path, "w", encoding="utf-8") as f:
-            f.write(text)
-        result["nl_summary"] = nl_path
+        if enable_llm:
+            # cfg["llm"] has already been resolved from --llm-profile by the CLI.
+            text = generate_backtest_report(payload, cfg=cfg, run_id=run_id, profile_name=None)
+            nl_path = os.path.join(out_dir, "nl_summary.txt")
+            with open(nl_path, "w", encoding="utf-8") as f:
+                f.write(text)
+            result["nl_summary"] = nl_path
     except Exception:
         pass
     return result 

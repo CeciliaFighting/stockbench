@@ -14,16 +14,15 @@ from __future__ import annotations
 __version__ = "1.0.0"
 __author__ = "Trading Agent Team"
 
-# Import main functions from applications for programmatic access
-try:
-    from .run_backtest import main as run_backtest_main
-    
-    __all__ = [
-        "run_backtest_main",
-    ]
-except ImportError:
-    # Handle cases where dependencies might not be available
-    __all__ = []
+# Lazy wrapper for programmatic access. Avoid importing run_backtest at package
+# import time, because `python -m stockbench.apps.run_backtest` otherwise emits
+# a RuntimeWarning about the module already being imported.
+def run_backtest_main(*args, **kwargs):
+    from .run_backtest import main
+    return main(*args, **kwargs)
+
+
+__all__ = ["run_backtest_main"]
 
 # Application metadata
 APPLICATIONS = {

@@ -11,10 +11,13 @@ START_DATE="${START_DATE:-2025-03-01}"    # Start date
 END_DATE="${END_DATE:-2025-06-30}"        # End date
 
 # 🤖 LLM Model Selection (Available options below)
-LLM_PROFILE="${LLM_PROFILE:-openai}"      # Current: openai (uses deepseek-v3.1-250821)
+LLM_PROFILE="${LLM_PROFILE:-efund}"     # Internal EFundGPT OpenAI-compatible API profile
 # you can add different LLM models in config.yaml
 # Available LLM profiles:
-#   - openai              : OpenAI GPT models (currently set to deepseek-v3.1)
+#   - efund               : Internal EFundGPT API (default, EFundGPT-air)
+#   - efundgpt            : Internal EFundGPT API profile name
+#   - openai-official     : Official OpenAI API (gpt-4o-mini)
+#   - openai              : Existing OSS/OpenAI-compatible profile from upstream config
 #   - deepseek-v3.1       : DeepSeek V3.1 model
 #   - kimi-k2-0711-preview: Kimi K2 model
 #   - qwen3-235b-a22b-instruct-2507: Qwen3 235B model
@@ -48,11 +51,16 @@ LLM_PROFILE="${LLM_PROFILE:-openai}"      # Current: openai (uses deepseek-v3.1-
 # Configuration file path
 CONFIG_PATH="config.yaml"
 APP_MOD="stockbench.apps.run_backtest"
+PYTHON_BIN="${PYTHON_BIN:-python}"
+if [[ "${PYTHON_BIN}" == "python" && -x ".venv/bin/python" ]]; then
+    PYTHON_BIN=".venv/bin/python"
+fi
 
 # Strategy and execution settings
 STRATEGY="${STRATEGY:-llm_decision}"
 TIMESPAN="${TIMESPAN:-day}"
 AGENT_MODE="${AGENT_MODE:-dual}"
+DATA_MODE="${DATA_MODE:-auto}"  # auto | offline_only
 
 # Output directories
 OUTPUT_DIR="storage/reports/backtest"
@@ -81,7 +89,7 @@ check_prerequisites() {
     fi
     
     # Check Python module
-    if ! python -c "import importlib, sys; importlib.import_module('${APP_MOD}')" 2>/dev/null; then
+    if ! "${PYTHON_BIN}" -c "import importlib, sys; importlib.import_module('${APP_MOD}')" 2>/dev/null; then
         log_error "Python module not found: ${APP_MOD}"
         exit 1
     fi
@@ -105,13 +113,14 @@ run_backtest() {
     log_info "LLM Profile: ${LLM_PROFILE}"
     
     # Build backtest command
-    local CMD="python -m ${APP_MOD} \
+    local CMD="\"${PYTHON_BIN}\" -m ${APP_MOD} \
         --cfg \"${CONFIG_PATH}\" \
         --start \"${START_DATE}\" --end \"${END_DATE}\" \
         --strategy \"${STRATEGY}\" \
         --run-id \"${RUN_ID}\" \
         --llm-profile \"${LLM_PROFILE}\" \
         --agent-mode \"${AGENT_MODE}\" \
+        --data-mode \"${DATA_MODE}\" \
         ${CACHE_OPTION} \
         ${EXTRA_OPTS}"
     
@@ -136,7 +145,7 @@ show_summary() {
     log_info "=== Backtest Tasks Completed ==="
     log_info "Output directory: ${OUTPUT_DIR}"
     log_info "Log directory: ${LOG_DIR}"
-    log_info "Strategy config: ${STRATEGY} | Timespan: ${TIMESPAN} | Agent mode: ${AGENT_MODE} | LLM: ${LLM_PROFILE}"
+    log_info "Strategy config: ${STRATEGY} | Timespan: ${TIMESPAN} | Agent mode: ${AGENT_MODE} | Data mode: ${DATA_MODE} | LLM: ${LLM_PROFILE}"
     log_info "Test configuration:"
     log_info "  • Date range: March-June 2025"
     log_info "  • Symbol universe: 20 stocks"
@@ -155,6 +164,7 @@ main() {
     log_info "  Strategy: ${STRATEGY}"
     log_info "  Timespan: ${TIMESPAN}"
     log_info "  Agent mode: ${AGENT_MODE}"
+    log_info "  Data mode: ${DATA_MODE}"
     log_info "  LLM profile: ${LLM_PROFILE}"
     log_info "  Default date range: ${START_DATE} to ${END_DATE}"
     
@@ -246,6 +256,10 @@ while [[ $# -gt 0 ]]; do
             LLM_PROFILE="$2"
             shift 2
             ;;
+        --data-mode)
+            DATA_MODE="$2"
+            shift 2
+            ;;
         --help|-h)
             echo "Usage: $0 [options]"
             echo ""
@@ -256,17 +270,22 @@ while [[ $# -gt 0 ]]; do
             echo "  --timespan TIMESPAN   Time granularity (default: ${TIMESPAN})"
             echo "  --agent-mode MODE     Agent mode (default: ${AGENT_MODE})"
             echo "  --llm-profile PROFILE LLM profile (default: ${LLM_PROFILE})"
+            echo "  --data-mode MODE      Data mode: auto|offline_only (default: ${DATA_MODE})"
             echo "  --help, -h            Show this help message"
             echo ""
             echo "Environment variables:"
-            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, LLM_PROFILE"
+            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE"
             echo ""
             echo "LLM profile options:"
-            echo "  openai        Use OpenAI API (default)"
-            echo "  gpt-oss-20b   Use GPT-OSS-20B model"
+            echo "  efund           Use internal EFundGPT API (default)"
+            echo "  efundgpt        Use internal EFundGPT API profile name"
+            echo "  openai-official Use official OpenAI API"
+            echo "  openai          Use upstream OSS/OpenAI-compatible profile"
+            echo "  gpt-oss-20b     Use GPT-OSS-20B model"
             echo ""
             echo "Examples:"
-            echo "  $0 --start-date 2024-01-01 --end-date 2024-01-31"
+            echo "  $0 --start-date 2025-03-03 --end-date 2025-03-07"
+            echo "  $0 --llm-profile efund"
             echo "  $0 --llm-profile gpt-oss-20b"
             echo "  LLM_PROFILE=\"gpt-oss-20b\" $0"
             exit 0

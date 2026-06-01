@@ -83,6 +83,28 @@ llm_profiles:
       max_retries: 3 # Network/API-level retries (not business-related)
       backoff_factor: 0.5
 
+  efundgpt:
+    provider: "openai"
+    base_url: "https://aigc.efunds.com.cn/v1"
+    model: "EFundGPT-air"
+    backtest_report_model: "EFundGPT-air"
+    auth_required: true
+    timeout_sec: 180
+    retry:
+      max_retries: 3
+      backoff_factor: 0.5
+
+  openai-official:
+    provider: "openai"
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o-mini"
+    backtest_report_model: "gpt-4o-mini"
+    auth_required: true
+    timeout_sec: 180
+    retry:
+      max_retries: 3
+      backoff_factor: 0.5
+
   deepseek-v3.1:
     provider: "openai"
     base_url: ""

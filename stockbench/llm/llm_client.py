@@ -49,11 +49,20 @@ class LLMConfig:
     budget_completion_tokens: int = 200_000
     # New: Whether authentication is required (vLLM can be auth-free by default)
     auth_required: Optional[bool] = None
+    # Extra HTTP headers for OpenAI-compatible services that require tenant/user metadata
+    extra_headers: Optional[Dict[str, str]] = None
 
 
 class LLMClient:
     def __init__(self, api_key_env: str = "OPENAI_API_KEY", cache_dir: Optional[str] = None) -> None:
-        self.api_key = os.getenv(api_key_env) or os.getenv("LLM_API_KEY", "")
+        self.api_key = (
+            os.getenv(api_key_env)
+            or os.getenv("LLM_API_KEY")
+            or os.getenv("EFUNDGPT_API_KEY")
+            or os.getenv("EFUNDS_API_KEY")
+            or os.getenv("AIGC_API_KEY")
+            or ""
+        )
         self.cache_dir = cache_dir or os.path.join(os.getcwd(), "storage", "cache", "llm")
         ensure_dir(self.cache_dir)
         self._client: Optional[httpx.Client] = None
@@ -76,6 +85,45 @@ class LLMClient:
         if self._client is None:
             self._client = httpx.Client(base_url=base_url, timeout=timeout_sec)
         return self._client
+
+    def _expand_header_value(self, value: Any) -> str:
+        """Expand simple ${VAR} and ${VAR:-default} placeholders in header values."""
+        text = str(value)
+
+        def replace(match: re.Match) -> str:
+            name = match.group(1)
+            default = match.group(2)
+            return os.getenv(name, default if default is not None else "")
+
+        text = re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}", replace, text)
+        return os.path.expandvars(text)
+
+    def _default_efunds_headers(self, cfg: LLMConfig) -> Dict[str, str]:
+        """Return required EFundGPT headers when using the internal AIGC endpoint."""
+        base_url = str(getattr(cfg, "base_url", "") or "").lower()
+        if "aigc.efunds.com.cn" not in base_url:
+            return {}
+
+        user_name = os.getenv("EFUNDS_USER_NAME") or os.getenv("EFUNDS_USERNAME")
+        if not user_name:
+            raw_user = os.getenv("USER") or os.getenv("USERNAME") or "unknown"
+            user_name = raw_user if raw_user.startswith("SX-") else f"SX-{raw_user}"
+
+        return {
+            "Efunds-User-Name": user_name,
+            "Efunds-Acc-Token": os.getenv("EFUNDS_ACC_TOKEN") or user_name,
+            "Efunds-Source": os.getenv("EFUNDS_SOURCE") or "2025-SX",
+        }
+
+    def _build_extra_headers(self, cfg: LLMConfig) -> Dict[str, str]:
+        headers = self._default_efunds_headers(cfg)
+        configured = getattr(cfg, "extra_headers", None) or {}
+        if isinstance(configured, dict):
+            for key, value in configured.items():
+                expanded = self._expand_header_value(value).strip()
+                if expanded:
+                    headers[str(key)] = expanded
+        return headers
 
     def _cache_path(self, key: str, run_id: Optional[str] = None, role: Optional[str] = None) -> str:
         # If no run_id provided, try to get from environment variable
@@ -789,6 +837,42 @@ class LLMClient:
                 self.llm_logger.debug(f"🔍 Cache miss - {role}")
         
         provider = (cfg.provider or "openai-compatible").lower()
+
+        # Built-in deterministic mock provider for smoke tests / CI.
+        if provider == "none":
+            try:
+                prompt_obj = json.loads(user_prompt) if isinstance(user_prompt, str) else {}
+            except Exception:
+                prompt_obj = {}
+            symbols_obj = prompt_obj.get("symbols", {}) if isinstance(prompt_obj, dict) else {}
+            symbols = list(symbols_obj.keys()) if isinstance(symbols_obj, dict) else []
+            if role == "fundamental_filter":
+                data = {
+                    "stocks_need_fundamental": symbols,
+                    "reasoning": {s: "mock provider: include fundamentals for smoke test" for s in symbols},
+                }
+            elif role == "backtest_report":
+                data = {"report": "Mock LLM provider enabled; natural-language summary not generated."}
+            else:
+                decisions = {}
+                for s in symbols:
+                    current_value = 0.0
+                    try:
+                        current_value = float(symbols_obj[s].get("features", {}).get("position_state", {}).get("current_position_value", 0.0))
+                    except Exception:
+                        current_value = 0.0
+                    decisions[s] = {
+                        "action": "hold",
+                        "target_cash_amount": current_value,
+                        "cash_change": 0.0,
+                        "reasons": ["mock provider: hold for smoke test"],
+                        "confidence": 0.5,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                data = {"decisions": decisions}
+            self.llm_logger.info(f"🧪 Mock LLM provider used - {role}")
+            return data, {**meta, "cached": False, "latency_ms": 0, "usage": {}}
+
         need_auth = cfg.auth_required if cfg.auth_required is not None else (provider not in {"vllm", "openai-compatible-no-auth", "llama.cpp", "none"})
         
         # Record authentication info
@@ -802,6 +886,11 @@ class LLMClient:
             else:
                 self.llm_logger.error(f"❌ Authentication required but no API key provided - {provider}")
                 return None, {**meta, "reason": "no_api_key"}
+
+        extra_headers = self._build_extra_headers(cfg)
+        if extra_headers:
+            headers.update(extra_headers)
+            self.llm_logger.debug(f"🧾 Added {len(extra_headers)} extra header(s)")
 
         body: Dict[str, Any] = {
             "model": cfg.model,
@@ -1085,6 +1174,10 @@ class LLMClient:
         
         try:
             client = self._get_openai_client(cfg)
+            extra_headers = self._build_extra_headers(cfg)
+            request_kwargs: Dict[str, Any] = {}
+            if extra_headers:
+                request_kwargs["extra_headers"] = extra_headers
             response = client.chat.completions.create(
                 model=cfg.model,
                 messages=[
@@ -1093,7 +1186,8 @@ class LLMClient:
                 ],
                 temperature=cfg.temperature,
                 max_tokens=cfg.max_tokens,
-                timeout=cfg.timeout_sec
+                timeout=cfg.timeout_sec,
+                **request_kwargs,
             )
 
             # Convert to standard format

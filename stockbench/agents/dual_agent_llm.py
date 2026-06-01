@@ -332,6 +332,7 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
             budget_prompt_tokens=int(llm_cfg_raw.get("budget", {}).get("max_prompt_tokens", 200_000)),
             budget_completion_tokens=int(llm_cfg_raw.get("budget", {}).get("max_completion_tokens", 200_000)),
             auth_required=llm_cfg_raw.get("auth_required"),
+            extra_headers=llm_cfg_raw.get("extra_headers"),
         )
 
         # Refine LLM cache read/write switches based on cache.mode
