@@ -36,6 +36,7 @@ from .schemas import (
 from .data_hub import (
     # Market data functions
     get_bars,
+    cache_daily_bars_yfinance,
     get_grouped_daily,
     get_universal_snapshots,
     get_gainers_losers,
@@ -91,6 +92,7 @@ __all__ = [
     
     # Market data access
     'get_bars',
+    'cache_daily_bars_yfinance',
     'get_grouped_daily',
     'get_universal_snapshots',
     'get_gainers_losers',

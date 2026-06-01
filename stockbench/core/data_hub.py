@@ -651,6 +651,120 @@ def _read_parquet_range(symbol: str, granularity: str, start: str, end: str) -> 
         return pd.DataFrame([])
 
 
+def _extract_yfinance_symbol_frame(raw: pd.DataFrame, symbol: str, single_symbol: bool) -> pd.DataFrame:
+    """Extract one symbol from yfinance.download output across column layouts."""
+    if raw is None or raw.empty:
+        return pd.DataFrame([])
+
+    if isinstance(raw.columns, pd.MultiIndex):
+        levels = [[str(x).upper() for x in raw.columns.get_level_values(i)] for i in range(raw.columns.nlevels)]
+        sym_upper = symbol.upper()
+        if sym_upper in levels[0]:
+            return raw.xs(symbol, axis=1, level=0, drop_level=True).copy()
+        if raw.columns.nlevels > 1 and sym_upper in levels[1]:
+            return raw.xs(symbol, axis=1, level=1, drop_level=True).copy()
+        if single_symbol:
+            # yfinance may still return a MultiIndex for one ticker. If no ticker
+            # level is visible, drop the first level and treat the remainder as OHLCV.
+            try:
+                out = raw.copy()
+                out.columns = out.columns.get_level_values(-1)
+                return out
+            except Exception:
+                return pd.DataFrame([])
+        return pd.DataFrame([])
+
+    return raw.copy() if single_symbol else pd.DataFrame([])
+
+
+def _normalize_yfinance_day_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize yfinance daily bars to StockBench day-bar schema."""
+    if df is None or df.empty:
+        return _empty_bars_df()
+
+    out = df.copy()
+    if isinstance(out.columns, pd.MultiIndex):
+        out.columns = out.columns.get_level_values(-1)
+    out.columns = [str(c).strip().lower().replace(" ", "_") for c in out.columns]
+    out = out.reset_index()
+
+    date_col = None
+    for candidate in ("date", "datetime", "index"):
+        if candidate in out.columns:
+            date_col = candidate
+            break
+    if date_col is None:
+        date_col = out.columns[0]
+
+    rename = {
+        date_col: "date",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
+    }
+    out = out.rename(columns=rename)
+    required = ["date", "open", "high", "low", "close", "volume"]
+    missing = [c for c in required if c not in out.columns]
+    if missing:
+        logger.warning(f"yfinance daily bars missing columns: {missing}")
+        return _empty_bars_df()
+
+    out = out[required].copy()
+    out["date"] = pd.to_datetime(out["date"], utc=True, errors="coerce").dt.tz_localize(None).dt.date
+    for col in ["open", "high", "low", "close", "volume"]:
+        out[col] = pd.to_numeric(out[col], errors="coerce")
+    out = out.dropna(subset=["date", "open", "high", "low", "close"])
+    out["volume"] = out["volume"].fillna(0)
+    out["vwap"] = out["close"]
+    out = out[["date", "open", "high", "low", "close", "volume", "vwap"]]
+    return _normalize_day_df(out)
+
+
+def cache_daily_bars_yfinance(symbols: List[str], start: str, end: str, auto_adjust: bool = False) -> Dict[str, int]:
+    """Fetch daily bars from yfinance and write them to storage/parquet.
+
+    yfinance treats the end date as exclusive; StockBench CLI dates are
+    inclusive, so this function adds one calendar day to ``end`` before fetching.
+    By default ``auto_adjust`` is False to preserve traded OHLC prices and avoid
+    double-counting dividends when the backtest handles corporate actions.
+    Returned counts are rows written/available per symbol after normalization.
+    """
+    try:
+        import yfinance as yf  # type: ignore
+    except ImportError as exc:  # pragma: no cover - depends on optional package install
+        raise RuntimeError("yfinance is not installed; run `uv pip install yfinance` or install requirements.txt") from exc
+
+    sym_list = [str(s).strip().upper() for s in symbols if str(s).strip()]
+    if not sym_list:
+        return {}
+
+    end_exclusive = (pd.to_datetime(end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d") if end else None
+    logger.info(f"[YFINANCE] Fetching daily bars for {len(sym_list)} symbols: {start} to {end} inclusive")
+    raw = yf.download(
+        tickers=" ".join(sym_list),
+        start=start,
+        end=end_exclusive,
+        interval="1d",
+        group_by="ticker",
+        auto_adjust=bool(auto_adjust),
+        actions=False,
+        threads=True,
+        progress=False,
+        repair=False,
+    )
+
+    counts: Dict[str, int] = {}
+    for symbol in sym_list:
+        symbol_raw = _extract_yfinance_symbol_frame(raw, symbol, single_symbol=(len(sym_list) == 1))
+        df = _normalize_yfinance_day_frame(symbol_raw)
+        df = _filter_day_by_date(df, start, end, symbol)
+        if not df.empty:
+            _write_partitioned_parquet(df, symbol, granularity="day")
+        counts[symbol] = int(len(df))
+        logger.info(f"[YFINANCE] Cached {symbol}: {counts[symbol]} daily rows")
+    return counts
 
 
 # Get daily or minute data

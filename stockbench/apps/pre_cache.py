@@ -119,6 +119,8 @@ def main(
     end: str = typer.Option("2025-07-31", help="End date YYYY-MM-DD (inclusive)"),
     symbols: Optional[str] = typer.Option(None, "--symbols", "-s", help="Symbol list (comma or space separated, overrides config)"),
     include_prices: bool = typer.Option(True, help="Pre-cache daily price bars"),
+    price_source: str = typer.Option("yfinance", help="Daily price source: yfinance|polygon"),
+    yfinance_auto_adjust: bool = typer.Option(False, help="Use yfinance auto_adjust for dividend-adjusted OHLC prices"),
     include_news: bool = typer.Option(True, help="Pre-cache news (per day)"),
     include_financials: bool = typer.Option(True, help="Pre-cache financials (annual/quarterly/all)"),
     include_indicators: bool = typer.Option(True, help="Pre-cache key indicators (per day)"),
@@ -145,22 +147,35 @@ def main(
 
     # 1) Prices (daily)
     if include_prices:
-        typer.echo("[1/5] Pre-caching daily bars ...")
-        for i, s in enumerate(sym_list):
-            result, error = _safe_api_call(
-                hub.get_bars, s, start, end, 
-                multiplier=1, timespan="day", adjusted=True, cfg=config,
-                api_delay=api_delay, batch_delay=batch_delay, max_retries=max_retries
-            )
-            if result is not None:
-                row_count = len(result) if hasattr(result, 'empty') and not result.empty else 0
-                typer.echo(f"  - {s}: {row_count} rows")
-            else:
-                typer.echo(f"  ! {s}: bars failed - {error}")
-            
-            # Progress display
-            if (i + 1) % 5 == 0:
-                typer.echo(f"    Progress: {i + 1}/{len(sym_list)} stocks completed")
+        source = str(price_source or "yfinance").strip().lower()
+        typer.echo(f"[1/5] Pre-caching daily bars from {source} ...")
+        if source in {"yfinance", "yf", "yahoo"}:
+            try:
+                counts = hub.cache_daily_bars_yfinance(sym_list, start, end, auto_adjust=yfinance_auto_adjust)
+            except Exception as exc:
+                typer.echo(f"  ! yfinance bars failed - {exc}")
+                raise typer.Exit(code=1)
+            for s in sym_list:
+                typer.echo(f"  - {s}: {counts.get(s, 0)} rows")
+        elif source == "polygon":
+            for i, s in enumerate(sym_list):
+                result, error = _safe_api_call(
+                    hub.get_bars, s, start, end,
+                    multiplier=1, timespan="day", adjusted=True, cfg=config,
+                    api_delay=api_delay, batch_delay=batch_delay, max_retries=max_retries
+                )
+                if result is not None:
+                    row_count = len(result) if hasattr(result, 'empty') and not result.empty else 0
+                    typer.echo(f"  - {s}: {row_count} rows")
+                else:
+                    typer.echo(f"  ! {s}: bars failed - {error}")
+
+                # Progress display
+                if (i + 1) % 5 == 0:
+                    typer.echo(f"    Progress: {i + 1}/{len(sym_list)} stocks completed")
+        else:
+            typer.echo(f"  ! unknown price source: {price_source}. Use yfinance or polygon.")
+            raise typer.Exit(code=1)
 
     # Build business-day date index (engine uses trading-day check; we filter by is_trading_day)
     dates = pd.date_range(start=start, end=end, freq="B")
