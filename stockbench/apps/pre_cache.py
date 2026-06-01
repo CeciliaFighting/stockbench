@@ -118,7 +118,7 @@ def main(
     start: str = typer.Option("2025-03-01", help="Start date YYYY-MM-DD"),
     end: str = typer.Option("2025-07-31", help="End date YYYY-MM-DD (inclusive)"),
     symbols: Optional[str] = typer.Option(None, "--symbols", "-s", help="Symbol list (comma or space separated, overrides config)"),
-    include_prices: bool = typer.Option(True, help="Pre-cache daily price bars"),
+    include_prices: bool = typer.Option(True, help="Pre-cache daily price bars into the versioned fixed price cache"),
     price_source: str = typer.Option("yfinance", help="Daily price source: yfinance|polygon"),
     yfinance_auto_adjust: bool = typer.Option(False, help="Use yfinance auto_adjust for dividend-adjusted OHLC prices"),
     include_news: bool = typer.Option(True, help="Pre-cache news (per day)"),

@@ -26,6 +26,9 @@ import numpy as np
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _BACKTEST_DIR = os.path.join(_PROJECT_ROOT, "backtest_data")
 _STORAGE_BASE = os.path.join(_PROJECT_ROOT, "storage")
+# Versioned price cache is fixed under data/; storage/ is runtime-only.
+_FIXED_DATA_BASE = os.path.join(_PROJECT_ROOT, "data")
+_FIXED_PARQUET_BASE = os.path.join(_FIXED_DATA_BASE, "price_cache", "parquet")
 _PARQUET_BASE = os.path.join(_STORAGE_BASE, "parquet")
 _CACHE_BASE = os.path.join(_STORAGE_BASE, "cache")
 _REPORT_BASE = os.path.join(_STORAGE_BASE, "reports")
@@ -581,10 +584,11 @@ def _read_local_day_csv(symbol: str) -> pd.DataFrame:
     return df
 
 
-def _write_partitioned_parquet(df: pd.DataFrame, symbol: str, granularity: str) -> None:
+def _write_partitioned_parquet(df: pd.DataFrame, symbol: str, granularity: str, root_dir: Optional[str] = None) -> None:
     if df.empty:
         return
-    base_dir = os.path.join(_PARQUET_BASE, symbol, granularity)
+    root = root_dir or _PARQUET_BASE
+    base_dir = os.path.join(root, symbol, granularity)
     ensure_dir(base_dir)
     # Both daily and minute data are written by "date" partitions (minute partition filenames don't include time to avoid massive small files and illegal characters)
     key_col = "date"
@@ -621,9 +625,10 @@ def _filter_day_by_date(df: pd.DataFrame, start: str, end: str, symbol: str = "U
     return out
 
 
-def _read_parquet_range(symbol: str, granularity: str, start: str, end: str) -> pd.DataFrame:
+def _read_parquet_range(symbol: str, granularity: str, start: str, end: str, root_dir: Optional[str] = None) -> pd.DataFrame:
     try:
-        base_dir = os.path.join(_PARQUET_BASE, symbol, granularity)
+        root = root_dir or _PARQUET_BASE
+        base_dir = os.path.join(root, symbol, granularity)
         if not os.path.isdir(base_dir):
             return pd.DataFrame([])
         files = [f for f in os.listdir(base_dir) if f.endswith('.parquet')]
@@ -649,6 +654,26 @@ def _read_parquet_range(symbol: str, granularity: str, start: str, end: str) -> 
     except Exception as exc:
         logger.warning(f"read parquet range failed: {symbol} {granularity} {start}-{end}: {exc}")
         return pd.DataFrame([])
+
+
+def _combine_day_frames_prefer_first(*frames: pd.DataFrame) -> pd.DataFrame:
+    """Combine daily bar frames, keeping earlier frames for duplicate dates."""
+    valid = [df for df in frames if df is not None and not df.empty]
+    if not valid:
+        return pd.DataFrame([])
+    combined = pd.concat(valid, ignore_index=True)
+    combined = _normalize_day_df(combined)
+    if combined.empty or "date" not in combined.columns:
+        return combined
+    combined = combined.drop_duplicates(subset=["date"], keep="first")
+    return combined.sort_values("date").reset_index(drop=True)
+
+
+def _read_price_parquet_range(symbol: str, granularity: str, start: str, end: str) -> pd.DataFrame:
+    """Read fixed price cache first, then runtime backfill cache for missing dates."""
+    fixed = _read_parquet_range(symbol, granularity, start, end, root_dir=_FIXED_PARQUET_BASE)
+    runtime = _read_parquet_range(symbol, granularity, start, end, root_dir=_PARQUET_BASE)
+    return _combine_day_frames_prefer_first(fixed, runtime)
 
 
 def _extract_yfinance_symbol_frame(raw: pd.DataFrame, symbol: str, single_symbol: bool) -> pd.DataFrame:
@@ -760,7 +785,7 @@ def cache_daily_bars_yfinance(symbols: List[str], start: str, end: str, auto_adj
         df = _normalize_yfinance_day_frame(symbol_raw)
         df = _filter_day_by_date(df, start, end, symbol)
         if not df.empty:
-            _write_partitioned_parquet(df, symbol, granularity="day")
+            _write_partitioned_parquet(df, symbol, granularity="day", root_dir=_FIXED_PARQUET_BASE)
         return int(len(df))
 
     counts: Dict[str, int] = {}
@@ -800,7 +825,7 @@ def get_bars(ticker: str, start: str, end: str, multiplier: int, timespan: str, 
     try:
         if timespan == "day":
             # 1) Prioritize reading local Parquet partitions
-            local = _read_parquet_range(ticker, "day", start, end)
+            local = _read_price_parquet_range(ticker, "day", start, end)
             if not local.empty:
                 # New: Check data completeness
                 filtered_local = _filter_day_by_date(local, start, end, ticker)
@@ -895,7 +920,7 @@ def get_bars(ticker: str, start: str, end: str, multiplier: int, timespan: str, 
         # Try to return any available cached data even on error
         try:
             logger.info(f"🔄 [ERROR-RECOVERY] Attempting to return cached data after error")
-            local_recovery = _read_parquet_range(ticker, "day", start, end)
+            local_recovery = _read_price_parquet_range(ticker, "day", start, end)
             if not local_recovery.empty:
                 filtered_recovery = _filter_day_by_date(local_recovery, start, end, ticker)
                 logger.info(f"📊 [ERROR-RECOVERY] Returning {len(filtered_recovery)} cached records despite error")
@@ -1422,17 +1447,10 @@ def compare_with_legacy_day(symbol: str, start: str, end: str, tolerance: float 
     try:
         legacy = _read_local_day_csv(symbol)
         legacy = _normalize_day_df(legacy)
-        # Read local saved daily Parquet partitions
-        base_dir = os.path.join(_PARQUET_BASE, symbol, "day")
-        rows: List[pd.DataFrame] = []
-        if os.path.isdir(base_dir):
-            for fname in os.listdir(base_dir):
-                if not fname.endswith(".parquet"):
-                    continue
-                d = fname.replace(".parquet", "")
-                rows.append(pd.read_parquet(os.path.join(base_dir, fname)))
-        current = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=legacy.columns)
-        current = _normalize_day_df(current)
+        # Read versioned fixed price cache plus any runtime backfill partitions.
+        current = _read_price_parquet_range(symbol, "day", start, end)
+        if current.empty:
+            current = pd.DataFrame(columns=legacy.columns)
         # Filter interval
         s = pd.to_datetime(start).date() if start else None
         e = pd.to_datetime(end).date() if end else None
