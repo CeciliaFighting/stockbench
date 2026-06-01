@@ -1,16 +1,6 @@
 # Python bytecode
 __pycache__/
 
-# Runtime logs and generated benchmark artifacts
+# Runtime logs, caches, and generated benchmark artifacts
 logs/
-storage/logs/
-storage/reports/
-storage/tmp/
-storage/cache/llm/
-
-# Runtime-expanded API/data caches. Existing tracked files remain tracked;
-# commit updates only when intentionally curating dataset snapshots.
-storage/cache/news/*.json
-storage/cache/news_by_day/**/*.json
-storage/parquet/**/*.parquet
-storage/parquet/**/*.sha256
+/storage/
