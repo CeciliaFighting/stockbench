@@ -27,8 +27,9 @@ data:
   # Data mode (auto | offline_only)
   # auto: Cache-first; fallback to APIs (Polygon/Finnhub) when local data is missing or incomplete.
   # offline_only: Read local caches/files only; NEVER call external APIs. Requires data pre-cached.
+  # The baseline price cache is fixed under storage/parquet; use auto only when intentionally backfilling data.
   # Tip: Can be overridden via CLI: --offline or --data-mode
-  mode: auto
+  mode: offline_only
 # Data configuration
 bars:
   day:

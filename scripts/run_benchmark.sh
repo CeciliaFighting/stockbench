@@ -60,7 +60,7 @@ fi
 STRATEGY="${STRATEGY:-llm_decision}"
 TIMESPAN="${TIMESPAN:-day}"
 AGENT_MODE="${AGENT_MODE:-dual}"
-DATA_MODE="${DATA_MODE:-auto}"  # auto | offline_only
+DATA_MODE="${DATA_MODE:-offline_only}"  # auto | offline_only
 
 # Output directories
 OUTPUT_DIR="storage/reports/backtest"
@@ -270,7 +270,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --timespan TIMESPAN   Time granularity (default: ${TIMESPAN})"
             echo "  --agent-mode MODE     Agent mode (default: ${AGENT_MODE})"
             echo "  --llm-profile PROFILE LLM profile (default: ${LLM_PROFILE})"
-            echo "  --data-mode MODE      Data mode: auto|offline_only (default: ${DATA_MODE})"
+            echo "  --data-mode MODE      Data mode: offline_only|auto (default: ${DATA_MODE})"
             echo "  --help, -h            Show this help message"
             echo ""
             echo "Environment variables:"
