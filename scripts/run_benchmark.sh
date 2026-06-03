@@ -12,10 +12,14 @@ END_DATE="${END_DATE:-2025-06-30}"        # End date
 
 # 🤖 LLM Model Selection (Available options below)
 LLM_PROFILE="${LLM_PROFILE:-efund}"     # Internal EFundGPT OpenAI-compatible API profile
+if [[ -n "${DEEPSEEK_API_KEY:-}" ]]; then
+    LLM_PROFILE="deepseek-v4-flash"      # Prefer DeepSeek V4 Flash when DEEPSEEK_API_KEY is configured
+fi
 # you can add different LLM models in config.yaml
 # Available LLM profiles:
 #   - efund               : Internal EFundGPT API (default, EFundGPT-air)
 #   - efundgpt            : Internal EFundGPT API profile name
+#   - deepseek-v4-flash   : DeepSeek V4 Flash (auto-selected when DEEPSEEK_API_KEY is configured)
 #   - openai-official     : Official OpenAI API (gpt-4o-mini)
 #   - openai              : Existing OSS/OpenAI-compatible profile from upstream config
 #   - deepseek-v3.1       : DeepSeek V3.1 model
@@ -166,6 +170,11 @@ main() {
     log_info "  Agent mode: ${AGENT_MODE}"
     log_info "  Data mode: ${DATA_MODE}"
     log_info "  LLM profile: ${LLM_PROFILE}"
+    if [[ -n "${DEEPSEEK_API_KEY:-}" ]]; then
+        log_info "  LLM API key source: Deepseek (DEEPSEEK_API_KEY); model: deepseek-v4-flash"
+    else
+        log_info "  LLM API key source: 易方达 (OPENAI_API_KEY); model profile: ${LLM_PROFILE}"
+    fi
     log_info "  Default date range: ${START_DATE} to ${END_DATE}"
     
     # Run backtest tasks
@@ -275,10 +284,12 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Environment variables:"
             echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE"
+            echo "  DEEPSEEK_API_KEY       If set, DeepSeek V4 Flash is used instead of the EFundGPT/OpenAI key"
             echo ""
             echo "LLM profile options:"
             echo "  efund           Use internal EFundGPT API (default)"
             echo "  efundgpt        Use internal EFundGPT API profile name"
+            echo "  deepseek-v4-flash Use DeepSeek V4 Flash (auto-selected when DEEPSEEK_API_KEY is set)"
             echo "  openai-official Use official OpenAI API"
             echo "  openai          Use upstream OSS/OpenAI-compatible profile"
             echo "  gpt-oss-20b     Use GPT-OSS-20B model"
@@ -297,6 +308,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Enforce DeepSeek priority after CLI parsing as well.
+if [[ -n "${DEEPSEEK_API_KEY:-}" ]]; then
+    LLM_PROFILE="deepseek-v4-flash"
+fi
 
 # Run main program
 main "$@" 

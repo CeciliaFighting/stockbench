@@ -32,7 +32,7 @@ def main(
     # Agent mode selection
     agent_mode: str = typer.Option(None, help="Agent mode: dual|single (use config if empty)"),
     # LLM profile switching
-    llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
+    llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|deepseek-v4-flash|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
     # News sentiment aggregation
     news_agg: str = typer.Option(None, help="News sentiment aggregation: mean|median|trimmed_mean (use config if empty)"),
     news_trim_alpha: float = typer.Option(None, help="News sentiment trimmed mean parameter alpha (0.0~0.49, use config if empty)"),
@@ -96,15 +96,45 @@ def main(
     except Exception:
         pass
     
-    # LLM profile override - use EFundGPT profile by default.
+    # LLM profile override - use DeepSeek automatically when DEEPSEEK_API_KEY is configured;
+    # otherwise keep the existing EFundGPT default (efund -> efundgpt).
     profiles = (config.get("llm_profiles", {}) or {})
-    profile_key = str(llm_profile or "efund").lower()
-    if profile_key == "efund":
-        profile_key = "efundgpt"
+    deepseek_configured = bool(os.getenv("DEEPSEEK_API_KEY"))
+    requested_profile_key = str(llm_profile or "efund").lower()
+    if requested_profile_key == "efund":
+        requested_profile_key = "efundgpt"
+    profile_key = "deepseek-v4-flash" if deepseek_configured else requested_profile_key
     prof = profiles.get(profile_key)
 
+    if deepseek_configured and not isinstance(prof, dict):
+        prof = {
+            "provider": "openai",
+            "base_url": "https://api.deepseek.com/v1",
+            "model": "deepseek-v4-flash",
+            "backtest_report_model": "deepseek-v4-flash",
+            "auth_required": True,
+            "api_key_env": "DEEPSEEK_API_KEY",
+            "timeout_sec": 180,
+            "retry": {"max_retries": 3, "backoff_factor": 0.5},
+        }
+
     if isinstance(prof, dict) and prof:
-        config["llm"] = {**(config.get("llm", {}) or {}), **prof}
+        base_llm = dict(config.get("llm", {}) or {})
+        if "api_key_env" not in prof:
+            base_llm.pop("api_key_env", None)
+        config["llm"] = {**base_llm, **prof}
+
+    selected_llm = config.get("llm", {}) or {}
+    if deepseek_configured:
+        typer.echo(
+            f"LLM API key source: Deepseek (DEEPSEEK_API_KEY); "
+            f"model: {selected_llm.get('model', 'deepseek-v4-flash')}"
+        )
+    else:
+        typer.echo(
+            f"LLM API key source: 易方达 (OPENAI_API_KEY); "
+            f"model: {selected_llm.get('model', profile_key)}"
+        )
 
     # Override configuration (risk control and LLM)
     if max_positions is not None:
