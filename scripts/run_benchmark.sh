@@ -297,6 +297,7 @@ while [[ $# -gt 0 ]]; do
             echo "Environment variables:"
             echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE"
             echo "  USE_DEEPSEEK=true      Use DeepSeek V4 Flash with DEEPSEEK_API_KEY for this run"
+            echo "  STOCKBENCH_DATA_CACHE_DIR Shared data cache directory; LLM cache remains worktree-local"
             echo "  DEEPSEEK_API_KEY       Required only when --use-deepseek or USE_DEEPSEEK=true is used"
             echo ""
             echo "LLM profile options:"
