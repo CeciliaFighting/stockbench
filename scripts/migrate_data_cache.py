@@ -12,6 +12,7 @@ import argparse
 import os
 import platform
 import re
+import shlex
 import shutil
 import sys
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ from pathlib import Path
 EXCLUDED_NAMES = {"llm"}
 DEFAULT_TARGET = "~/.cache/stockbench/data-cache"
 ENV_NAME = "STOCKBENCH_DATA_CACHE_DIR"
+SHELL_BLOCK_START = "# >>> stockbench data cache >>>"
+SHELL_BLOCK_END = "# <<< stockbench data cache <<<"
 
 
 @dataclass
@@ -61,6 +64,46 @@ def expand_path(value: str) -> Path:
 
 def default_target() -> Path:
     return expand_path(os.getenv(ENV_NAME) or DEFAULT_TARGET)
+
+
+def infer_shell_profile() -> Path:
+    shell = Path(os.getenv("SHELL", "")).name.lower()
+    home = Path.home()
+    if shell == "zsh":
+        return home / ".zshrc"
+    if shell == "bash":
+        return home / ".bashrc"
+    return home / ".profile"
+
+
+def shell_export_block(target: Path) -> str:
+    return (
+        f"{SHELL_BLOCK_START}\n"
+        f"export {ENV_NAME}={shlex.quote(str(target))}\n"
+        f"{SHELL_BLOCK_END}\n"
+    )
+
+
+def persist_shell_env(target: Path, profile: Path) -> None:
+    profile = expand_path(str(profile))
+    block = shell_export_block(target)
+    text = ""
+    if profile.exists():
+        text = profile.read_text(encoding="utf-8", errors="ignore")
+
+    pattern = re.compile(
+        re.escape(SHELL_BLOCK_START) + r".*?" + re.escape(SHELL_BLOCK_END) + r"\n?",
+        flags=re.DOTALL,
+    )
+    if pattern.search(text):
+        new_text = pattern.sub(block, text)
+    else:
+        sep = "" if not text or text.endswith("\n") else "\n"
+        new_text = f"{text}{sep}{block}"
+
+    profile.parent.mkdir(parents=True, exist_ok=True)
+    profile.write_text(new_text, encoding="utf-8")
+    print(f"persisted: {ENV_NAME} in {profile}")
 
 
 def is_relative_to(path: Path, parent: Path) -> bool:
@@ -171,6 +214,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="show what would be copied without writing files",
     )
+    parser.add_argument(
+        "--persist-shell",
+        action="store_true",
+        help="append/update a managed STOCKBENCH_DATA_CACHE_DIR export block in the shell profile",
+    )
+    parser.add_argument(
+        "--shell-profile",
+        default=None,
+        help="shell startup file to update with --persist-shell; default infers from $SHELL",
+    )
     return parser.parse_args()
 
 
@@ -226,10 +279,21 @@ def main() -> int:
     print(f"  touched directories: {total.copied_dirs}")
     print(f"  errors: {total.errors}")
 
-    if not args.dry_run:
+    if args.persist_shell:
+        if args.dry_run:
+            profile = expand_path(args.shell_profile) if args.shell_profile else infer_shell_profile()
+            print("persist shell dry-run:")
+            print(f"  profile: {profile}")
+            print(shell_export_block(target_abs).rstrip())
+        elif total.errors:
+            print("skip shell persistence because migration had errors", file=sys.stderr)
+        else:
+            profile = expand_path(args.shell_profile) if args.shell_profile else infer_shell_profile()
+            persist_shell_env(target_abs, profile)
+    elif not args.dry_run:
         print("next step:")
         print(f"  export {ENV_NAME}=\"{target_abs}\"")
-        print("  # add that export to your shell profile or worktree launcher")
+        print("  # or rerun with --persist-shell to update your shell profile")
 
     return 1 if total.errors else 0
 

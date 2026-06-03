@@ -78,23 +78,26 @@ Preview first:
 scripts/migrate_data_cache.py --dry-run
 ```
 
-Migrate to the default Linux/WSL-native location:
+Migrate to the default Linux/WSL-native location and persist it in the current shell profile:
 
 ```bash
-scripts/migrate_data_cache.py
-export STOCKBENCH_DATA_CACHE_DIR="$HOME/.cache/stockbench/data-cache"
+scripts/migrate_data_cache.py --persist-shell
 ```
 
-Or specify a target explicitly:
+This writes an idempotent managed block to the inferred startup file, e.g. `~/.zshrc` for zsh or `~/.bashrc` for bash. New sessions will then inherit `STOCKBENCH_DATA_CACHE_DIR`.
+
+Or specify a target and shell profile explicitly:
 
 ```bash
-scripts/migrate_data_cache.py --target "$HOME/.cache/stockbench/data-cache"
-export STOCKBENCH_DATA_CACHE_DIR="$HOME/.cache/stockbench/data-cache"
+scripts/migrate_data_cache.py \
+  --target "$HOME/.cache/stockbench/data-cache" \
+  --persist-shell \
+  --shell-profile "$HOME/.zshrc"
 ```
 
 If the target already contains files, the script skips them by default. Use `--overwrite` only when intentionally replacing existing cache files.
 
-After migration, add the export to the shell profile or to the launcher used for every worktree.
+If you do not use `--persist-shell`, add the export manually to the shell profile or to the launcher used for every worktree.
 
 ## Fedora and WSL path guidance
 
