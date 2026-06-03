@@ -33,6 +33,7 @@ def main(
     agent_mode: str = typer.Option(None, help="Agent mode: dual|single (use config if empty)"),
     # LLM profile switching
     llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|deepseek-v4-flash|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
+    use_deepseek: bool = typer.Option(False, "--use-deepseek", help="Use DeepSeek V4 Flash and DEEPSEEK_API_KEY for this run"),
     # News sentiment aggregation
     news_agg: str = typer.Option(None, help="News sentiment aggregation: mean|median|trimmed_mean (use config if empty)"),
     news_trim_alpha: float = typer.Option(None, help="News sentiment trimmed mean parameter alpha (0.0~0.49, use config if empty)"),
@@ -96,17 +97,26 @@ def main(
     except Exception:
         pass
     
-    # LLM profile override - use DeepSeek automatically when DEEPSEEK_API_KEY is configured;
-    # otherwise keep the existing EFundGPT default (efund -> efundgpt).
+    # LLM profile override. DeepSeek is opt-in only: having DEEPSEEK_API_KEY
+    # configured is not enough; pass --use-deepseek or explicitly select the
+    # deepseek-v4-flash profile.
     profiles = (config.get("llm_profiles", {}) or {})
-    deepseek_configured = bool(os.getenv("DEEPSEEK_API_KEY"))
     requested_profile_key = str(llm_profile or "efund").lower()
-    if requested_profile_key == "efund":
-        requested_profile_key = "efundgpt"
-    profile_key = "deepseek-v4-flash" if deepseek_configured else requested_profile_key
+    if use_deepseek:
+        profile_key = "deepseek-v4-flash"
+    elif requested_profile_key == "efund":
+        profile_key = "efundgpt"
+    else:
+        profile_key = requested_profile_key
+
+    using_deepseek = profile_key == "deepseek-v4-flash"
     prof = profiles.get(profile_key)
 
-    if deepseek_configured and not isinstance(prof, dict):
+    if using_deepseek and not os.getenv("DEEPSEEK_API_KEY"):
+        typer.echo("DEEPSEEK_API_KEY is required when using Deepseek (--use-deepseek).", err=True)
+        raise typer.Exit(1)
+
+    if using_deepseek and not isinstance(prof, dict):
         prof = {
             "provider": "openai",
             "base_url": "https://api.deepseek.com/v1",
@@ -125,7 +135,7 @@ def main(
         config["llm"] = {**base_llm, **prof}
 
     selected_llm = config.get("llm", {}) or {}
-    if deepseek_configured:
+    if using_deepseek:
         typer.echo(
             f"LLM API key source: Deepseek (DEEPSEEK_API_KEY); "
             f"model: {selected_llm.get('model', 'deepseek-v4-flash')}"
