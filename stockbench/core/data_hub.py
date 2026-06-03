@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import json
 import hashlib
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
@@ -22,6 +23,19 @@ import numpy as np
 
 
 
+def _resolve_path(path: str) -> str:
+    """Expand env/user markers and return an absolute filesystem path."""
+    expanded = os.path.expanduser(os.path.expandvars(str(path)))
+    # WSL/Linux convenience for Windows-style paths pasted into env vars.
+    if os.name != "nt":
+        match = re.match(r"^([A-Za-z]):[\\/](.*)$", expanded)
+        if match:
+            drive = match.group(1).lower()
+            rest = match.group(2).replace("\\", "/")
+            expanded = f"/mnt/{drive}/{rest}"
+    return os.path.abspath(expanded)
+
+
 # Calculate project root directory (absolute path)
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _BACKTEST_DIR = os.path.join(_PROJECT_ROOT, "backtest_data")
@@ -30,7 +44,9 @@ _STORAGE_BASE = os.path.join(_PROJECT_ROOT, "storage")
 _FIXED_DATA_BASE = os.path.join(_PROJECT_ROOT, "data")
 _FIXED_PARQUET_BASE = os.path.join(_FIXED_DATA_BASE, "price_cache", "parquet")
 _PARQUET_BASE = os.path.join(_STORAGE_BASE, "parquet")
-_CACHE_BASE = os.path.join(_STORAGE_BASE, "cache")
+# Data cache can be shared across worktrees via STOCKBENCH_DATA_CACHE_DIR.
+# LLM cache is intentionally not affected; LLMClient keeps it under each worktree.
+_CACHE_BASE = _resolve_path(os.getenv("STOCKBENCH_DATA_CACHE_DIR") or os.path.join(_STORAGE_BASE, "cache"))
 _REPORT_BASE = os.path.join(_STORAGE_BASE, "reports")
 _CORP_ACTIONS_DIR = os.path.join(_CACHE_BASE, "corporate_actions")
 _NEWS_BY_DAY_BASE = os.path.join(_CACHE_BASE, "news_by_day")

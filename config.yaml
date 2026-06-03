@@ -100,6 +100,18 @@ llm_profiles:
       max_retries: 3
       backoff_factor: 0.5
 
+  deepseek-v4-flash:
+    provider: "openai"
+    base_url: "https://api.deepseek.com/v1"
+    model: "deepseek-v4-flash"
+    backtest_report_model: "deepseek-v4-flash"
+    auth_required: true
+    api_key_env: "DEEPSEEK_API_KEY"
+    timeout_sec: 180
+    retry:
+      max_retries: 3
+      backoff_factor: 0.5
+
   openai-official:
     provider: "openai"
     base_url: "https://api.openai.com/v1"

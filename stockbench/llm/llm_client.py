@@ -51,39 +51,69 @@ class LLMConfig:
     auth_required: Optional[bool] = None
     # Extra HTTP headers for OpenAI-compatible services that require tenant/user metadata
     extra_headers: Optional[Dict[str, str]] = None
+    # Optional API key environment variable for this profile (e.g. DEEPSEEK_API_KEY)
+    api_key_env: Optional[str] = None
 
 
 class LLMClient:
     def __init__(self, api_key_env: str = "OPENAI_API_KEY", cache_dir: Optional[str] = None) -> None:
-        self.api_key = (
-            os.getenv(api_key_env)
-            or os.getenv("LLM_API_KEY")
-            or os.getenv("EFUNDGPT_API_KEY")
-            or os.getenv("EFUNDS_API_KEY")
-            or os.getenv("AIGC_API_KEY")
-            or ""
-        )
+        self.api_key_env = api_key_env
+        self.api_key, self.api_key_source = self._resolve_api_key()
         self.cache_dir = cache_dir or os.path.join(os.getcwd(), "storage", "cache", "llm")
         ensure_dir(self.cache_dir)
         self._client: Optional[httpx.Client] = None
+        self._client_key: Optional[Tuple[str, float]] = None
         self._openai_client: Optional[openai.OpenAI] = None  # Add OpenAI client
+        self._openai_client_key: Optional[Tuple[str, str, float]] = None
         self._prompt_tokens_used = 0
         self._completion_tokens_used = 0
         self.llm_logger = get_llm_logger()  # Get LLM-specific logger
 
+    def _resolve_api_key(self, cfg: Optional[LLMConfig] = None) -> Tuple[str, str]:
+        """Resolve the API key for the active profile.
+
+        Profile-specific api_key_env takes priority so a DeepSeek profile can use
+        DEEPSEEK_API_KEY even when OPENAI_API_KEY is also configured.
+        """
+        configured_name = getattr(cfg, "api_key_env", None) if cfg is not None else None
+        if configured_name:
+            name = str(configured_name)
+            return os.getenv(name, ""), name
+
+        if cfg is not None:
+            base_url = str(getattr(cfg, "base_url", "") or "").lower()
+            if "deepseek.com" in base_url:
+                return os.getenv("DEEPSEEK_API_KEY", ""), "DEEPSEEK_API_KEY"
+
+        names = [self.api_key_env, "LLM_API_KEY", "EFUNDGPT_API_KEY", "EFUNDS_API_KEY", "AIGC_API_KEY"]
+        seen = set()
+        for name in names:
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            value = os.getenv(name)
+            if value:
+                return value, name
+        return "", ""
+
     def _get_openai_client(self, cfg: LLMConfig) -> openai.OpenAI:
         """Get OpenAI official client"""
-        if self._openai_client is None:
+        api_key, _ = self._resolve_api_key(cfg)
+        client_key = (api_key, str(cfg.base_url), float(cfg.timeout_sec))
+        if self._openai_client is None or self._openai_client_key != client_key:
             self._openai_client = openai.OpenAI(
-                api_key=self.api_key,
+                api_key=api_key,
                 base_url=cfg.base_url,
                 timeout=cfg.timeout_sec
             )
+            self._openai_client_key = client_key
         return self._openai_client
 
     def _get_client(self, base_url: str, timeout_sec: float) -> httpx.Client:
-        if self._client is None:
+        client_key = (base_url, float(timeout_sec))
+        if self._client is None or self._client_key != client_key:
             self._client = httpx.Client(base_url=base_url, timeout=timeout_sec)
+            self._client_key = client_key
         return self._client
 
     def _expand_header_value(self, value: Any) -> str:
@@ -901,18 +931,20 @@ class LLMClient:
             return data, {**meta, "cached": False, "latency_ms": 0, "usage": {}}
 
         need_auth = cfg.auth_required if cfg.auth_required is not None else (provider not in {"vllm", "openai-compatible-no-auth", "llama.cpp", "none"})
+        api_key, api_key_source = self._resolve_api_key(cfg)
         
         # Record authentication info
-        self.llm_logger.debug(f"🔐 Authentication check - Provider: {provider}, Needs auth: {need_auth}")
+        self.llm_logger.debug(f"🔐 Authentication check - Provider: {provider}, Needs auth: {need_auth}, Key env: {api_key_source or 'none'}")
         
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         if need_auth:
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
-                self.llm_logger.debug(f"🔑 Add authentication header")
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+                self.llm_logger.debug(f"🔑 Add authentication header from {api_key_source}")
             else:
-                self.llm_logger.error(f"❌ Authentication required but no API key provided - {provider}")
-                return None, {**meta, "reason": "no_api_key"}
+                expected_key = getattr(cfg, "api_key_env", None) or "OPENAI_API_KEY"
+                self.llm_logger.error(f"❌ Authentication required but no API key provided - {provider}; expected {expected_key}")
+                return None, {**meta, "reason": f"no_api_key:{expected_key}"}
 
         extra_headers = self._build_extra_headers(cfg)
         if extra_headers:

@@ -12,10 +12,12 @@ END_DATE="${END_DATE:-2025-06-30}"        # End date
 
 # 🤖 LLM Model Selection (Available options below)
 LLM_PROFILE="${LLM_PROFILE:-efund}"     # Internal EFundGPT OpenAI-compatible API profile
+USE_DEEPSEEK="${USE_DEEPSEEK:-false}"   # Set true or pass --use-deepseek to use DeepSeek V4 Flash
 # you can add different LLM models in config.yaml
 # Available LLM profiles:
 #   - efund               : Internal EFundGPT API (default, EFundGPT-air)
 #   - efundgpt            : Internal EFundGPT API profile name
+#   - deepseek-v4-flash   : DeepSeek V4 Flash (requires --use-deepseek or explicit --llm-profile)
 #   - openai-official     : Official OpenAI API (gpt-4o-mini)
 #   - openai              : Existing OSS/OpenAI-compatible profile from upstream config
 #   - deepseek-v3.1       : DeepSeek V3.1 model
@@ -36,7 +38,10 @@ LLM_PROFILE="${LLM_PROFILE:-efund}"     # Internal EFundGPT OpenAI-compatible AP
 #   3. Change LLM model:
 #      bash scripts/run_benchmark.sh --llm-profile deepseek-v3.1
 #
-#   4. Full customization:
+#   4. Use DeepSeek V4 Flash explicitly:
+#      bash scripts/run_benchmark.sh --use-deepseek
+#
+#   5. Full customization:
 #      bash scripts/run_benchmark.sh \
 #          --start-date 2025-04-01 \
 #          --end-date 2025-05-31 \
@@ -120,6 +125,10 @@ run_backtest() {
     fi
     
     # Build backtest command
+    local DEEPSEEK_OPTION=""
+    if [[ "${USE_DEEPSEEK}" == "true" ]]; then
+        DEEPSEEK_OPTION="--use-deepseek"
+    fi
     local CMD="\"${PYTHON_BIN}\" -m ${APP_MOD} \
         --cfg \"${CONFIG_PATH}\" \
         --start \"${START_DATE}\" --end \"${END_DATE}\" \
@@ -129,6 +138,7 @@ run_backtest() {
         --agent-mode \"${AGENT_MODE}\" \
         --data-mode \"${DATA_MODE}\" \
         ${REFLECTION_OPTION} \
+        ${DEEPSEEK_OPTION} \
         ${CACHE_OPTION} \
         ${EXTRA_OPTS}"
     
@@ -175,6 +185,11 @@ main() {
     log_info "  Data mode: ${DATA_MODE}"
     log_info "  Reflection agent: ${REFLECTION_AGENT}"
     log_info "  LLM profile: ${LLM_PROFILE}"
+    if [[ "${USE_DEEPSEEK}" == "true" || "${LLM_PROFILE}" == "deepseek-v4-flash" ]]; then
+        log_info "  LLM API key source: Deepseek (DEEPSEEK_API_KEY); model: deepseek-v4-flash"
+    else
+        log_info "  LLM API key source: 易方达 (OPENAI_API_KEY); model profile: ${LLM_PROFILE}"
+    fi
     log_info "  Default date range: ${START_DATE} to ${END_DATE}"
     
     # Run backtest tasks
@@ -265,6 +280,11 @@ while [[ $# -gt 0 ]]; do
             LLM_PROFILE="$2"
             shift 2
             ;;
+        --use-deepseek)
+            USE_DEEPSEEK="true"
+            LLM_PROFILE="deepseek-v4-flash"
+            shift
+            ;;
         --data-mode)
             DATA_MODE="$2"
             shift 2
@@ -287,6 +307,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --timespan TIMESPAN   Time granularity (default: ${TIMESPAN})"
             echo "  --agent-mode MODE     Agent mode (default: ${AGENT_MODE})"
             echo "  --llm-profile PROFILE LLM profile (default: ${LLM_PROFILE})"
+            echo "  --use-deepseek        Use DeepSeek V4 Flash with DEEPSEEK_API_KEY for this run"
             echo "  --data-mode MODE      Data mode: offline_only|auto (default: ${DATA_MODE})"
             echo "  --reflection-agent    Enable Variant 1 reflection agent"
             echo "  --no-reflection-agent Disable Variant 1 reflection agent"
@@ -294,10 +315,14 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Environment variables:"
             echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE, REFLECTION_AGENT"
+            echo "  USE_DEEPSEEK=true      Use DeepSeek V4 Flash with DEEPSEEK_API_KEY for this run"
+            echo "  STOCKBENCH_DATA_CACHE_DIR Shared data cache directory; LLM cache remains worktree-local"
+            echo "  DEEPSEEK_API_KEY       Required only when --use-deepseek or USE_DEEPSEEK=true is used"
             echo ""
             echo "LLM profile options:"
             echo "  efund           Use internal EFundGPT API (default)"
             echo "  efundgpt        Use internal EFundGPT API profile name"
+            echo "  deepseek-v4-flash Use DeepSeek V4 Flash (requires --use-deepseek or explicit --llm-profile)"
             echo "  openai-official Use official OpenAI API"
             echo "  openai          Use upstream OSS/OpenAI-compatible profile"
             echo "  gpt-oss-20b     Use GPT-OSS-20B model"
@@ -316,6 +341,17 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "${USE_DEEPSEEK}" == "1" || "${USE_DEEPSEEK}" == "yes" || "${USE_DEEPSEEK}" == "TRUE" || "${USE_DEEPSEEK}" == "true" ]]; then
+    USE_DEEPSEEK="true"
+    LLM_PROFILE="deepseek-v4-flash"
+    if [[ -z "${DEEPSEEK_API_KEY:-}" ]]; then
+        log_error "DEEPSEEK_API_KEY is required when --use-deepseek or USE_DEEPSEEK=true is used"
+        exit 1
+    fi
+else
+    USE_DEEPSEEK="false"
+fi
 
 # Run main program
 main "$@"
