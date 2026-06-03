@@ -1,5 +1,12 @@
 # DER README
 
+## WSL
+```bash
+wsl
+cd /mnt/d/intern_life/efunds/stockbench
+source .venv/bin/activate
+```
+
 ## Git proxy configuration
 
 ### 小猫
