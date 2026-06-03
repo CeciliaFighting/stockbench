@@ -68,37 +68,6 @@ When not set, behavior is unchanged and data cache stays under:
 
 LLM cache is intentionally unaffected by `STOCKBENCH_DATA_CACHE_DIR` and remains isolated per worktree.
 
-## Migrating current data cache to a shared cache
-
-Use the migration script. It copies data cache and excludes `llm/`.
-
-Preview first:
-
-```bash
-scripts/migrate_data_cache.py --dry-run
-```
-
-Migrate to the default Linux/WSL-native location and persist it in the current shell profile:
-
-```bash
-scripts/migrate_data_cache.py --persist-shell
-```
-
-This writes an idempotent managed block to the inferred startup file, e.g. `~/.zshrc` for zsh or `~/.bashrc` for bash. New sessions will then inherit `STOCKBENCH_DATA_CACHE_DIR`.
-
-Or specify a target and shell profile explicitly:
-
-```bash
-scripts/migrate_data_cache.py \
-  --target "$HOME/.cache/stockbench/data-cache" \
-  --persist-shell \
-  --shell-profile "$HOME/.zshrc"
-```
-
-If the target already contains files, the script skips them by default. Use `--overwrite` only when intentionally replacing existing cache files.
-
-If you do not use `--persist-shell`, add the export manually to the shell profile or to the launcher used for every worktree.
-
 ## Fedora and WSL path guidance
 
 Preferred Fedora/Linux path:
@@ -119,7 +88,7 @@ If WSL and Windows-native Python must share the exact same physical data cache, 
 
 ```bash
 export STOCKBENCH_DATA_CACHE_DIR="/mnt/c/Users/<you>/AppData/Local/stockbench/data-cache"
-# or Windows-style path; the code/migration script convert it under WSL/Linux
+# or Windows-style path; the code converts it under WSL/Linux
 export STOCKBENCH_DATA_CACHE_DIR='C:\Users\<you>\AppData\Local\stockbench\data-cache'
 ```
 
