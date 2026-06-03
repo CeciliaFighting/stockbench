@@ -62,6 +62,11 @@ agents:
       temperature: 0.7               # Lower temperature ensures stable filtering
       max_tokens: 16000               # Filtering tasks require fewer tokens
       prompt: "fundamental_filter_v1.txt"  # Prompt file for the fundamental filter agent
+    reflection_agent:
+      enabled: false                  # Variant 1 switch: add structured reflection before decisions
+      temperature: 0.3                # Lower temperature for stable market/portfolio diagnosis
+      max_tokens: 8000                # Reflection outputs analysis only, not orders
+      prompt: "reflection_agent_v1_1.txt"   # Variant 1.1: exposure-calibrated reflection
     decision_agent:
       temperature: 0.7               # Decision-making needs moderate creativity
       max_tokens: 16000               # Decision tasks require more tokens

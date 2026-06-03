@@ -61,6 +61,7 @@ STRATEGY="${STRATEGY:-llm_decision}"
 TIMESPAN="${TIMESPAN:-day}"
 AGENT_MODE="${AGENT_MODE:-dual}"
 DATA_MODE="${DATA_MODE:-offline_only}"  # auto | offline_only
+REFLECTION_AGENT="${REFLECTION_AGENT:-false}"  # true | false
 
 # Output directories
 OUTPUT_DIR="storage/reports/backtest"
@@ -111,6 +112,12 @@ run_backtest() {
     
     log_info "Starting backtest: ${RUN_ID}"
     log_info "LLM Profile: ${LLM_PROFILE}"
+    local REFLECTION_OPTION=""
+    if [[ "${REFLECTION_AGENT}" == "true" || "${REFLECTION_AGENT}" == "1" || "${REFLECTION_AGENT}" == "yes" ]]; then
+        REFLECTION_OPTION="--reflection-agent"
+    elif [[ "${REFLECTION_AGENT}" == "false" || "${REFLECTION_AGENT}" == "0" || "${REFLECTION_AGENT}" == "no" ]]; then
+        REFLECTION_OPTION="--no-reflection-agent"
+    fi
     
     # Build backtest command
     local CMD="\"${PYTHON_BIN}\" -m ${APP_MOD} \
@@ -121,6 +128,7 @@ run_backtest() {
         --llm-profile \"${LLM_PROFILE}\" \
         --agent-mode \"${AGENT_MODE}\" \
         --data-mode \"${DATA_MODE}\" \
+        ${REFLECTION_OPTION} \
         ${CACHE_OPTION} \
         ${EXTRA_OPTS}"
     
@@ -165,6 +173,7 @@ main() {
     log_info "  Timespan: ${TIMESPAN}"
     log_info "  Agent mode: ${AGENT_MODE}"
     log_info "  Data mode: ${DATA_MODE}"
+    log_info "  Reflection agent: ${REFLECTION_AGENT}"
     log_info "  LLM profile: ${LLM_PROFILE}"
     log_info "  Default date range: ${START_DATE} to ${END_DATE}"
     
@@ -260,6 +269,14 @@ while [[ $# -gt 0 ]]; do
             DATA_MODE="$2"
             shift 2
             ;;
+        --reflection-agent)
+            REFLECTION_AGENT="true"
+            shift
+            ;;
+        --no-reflection-agent)
+            REFLECTION_AGENT="false"
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [options]"
             echo ""
@@ -271,10 +288,12 @@ while [[ $# -gt 0 ]]; do
             echo "  --agent-mode MODE     Agent mode (default: ${AGENT_MODE})"
             echo "  --llm-profile PROFILE LLM profile (default: ${LLM_PROFILE})"
             echo "  --data-mode MODE      Data mode: offline_only|auto (default: ${DATA_MODE})"
+            echo "  --reflection-agent    Enable Variant 1 reflection agent"
+            echo "  --no-reflection-agent Disable Variant 1 reflection agent"
             echo "  --help, -h            Show this help message"
             echo ""
             echo "Environment variables:"
-            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE"
+            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE, REFLECTION_AGENT"
             echo ""
             echo "LLM profile options:"
             echo "  efund           Use internal EFundGPT API (default)"
@@ -299,4 +318,4 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Run main program
-main "$@" 
+main "$@"

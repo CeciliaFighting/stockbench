@@ -851,6 +851,33 @@ class LLMClient:
                     "stocks_need_fundamental": symbols,
                     "reasoning": {s: "mock provider: include fundamentals for smoke test" for s in symbols},
                 }
+            elif role == "reflection_agent":
+                data = {
+                    "market_regime": "uncertain",
+                    "market_summary": "mock provider: neutral market reflection for smoke test",
+                    "portfolio_diagnosis": {
+                        "cash_exposure": "normal",
+                        "risk_level": "medium",
+                        "key_issue": "mock provider: no portfolio issue diagnosed",
+                        "target_equity_exposure_band": "40%-70%",
+                        "deployment_urgency": "normal",
+                    },
+                    "symbol_assessments": {
+                        s: {
+                            "relative_strength": "neutral",
+                            "trend_quality": "stable",
+                            "risk": "medium",
+                            "preferred_bias": "hold",
+                            "rationale": "mock provider: neutral symbol assessment",
+                        }
+                        for s in symbols
+                    },
+                    "decision_guidance": {
+                        "overall_bias": "maintain_exposure",
+                        "candidate_actions": [],
+                        "watch_items": ["mock provider: smoke test only"],
+                    },
+                }
             elif role == "backtest_report":
                 data = {"report": "Mock LLM provider enabled; natural-language summary not generated."}
             else:

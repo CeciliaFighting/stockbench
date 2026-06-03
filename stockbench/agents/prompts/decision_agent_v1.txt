@@ -56,6 +56,12 @@ Input:
     - confidence: Decision confidence [0,1]  
     - Note: All decisions (including hold, buy, sell) are recorded in history. Hold decisions provide important context for future trading decisions and strategy consistency tracking.
 
+- reflection_context: Optional structured advisory analysis from a reflection agent
+  - This field appears only when reflection_agent.enabled=true.
+  - It contains market_regime, portfolio_diagnosis, symbol_assessments, and decision_guidance.
+  - Reflection is advisory context, not an order. You remain responsible for final decisions and cash constraints.
+  - Use it to check market regime, portfolio exposure, symbol relative strength, risk, and potential contradictions before deciding.
+
 <DUAL-AGENT CONTEXT>
 This system uses a dual-agent architecture where a fundamental filter agent has pre-analyzed stocks to determine which ones require fundamental analysis:
 
@@ -69,6 +75,24 @@ This system uses a dual-agent architecture where a fundamental filter agent has 
 
 - **Filter Agent Reasoning**: The filter_reasoning field provides valuable context about the filtering decision. Consider this reasoning when making your final investment decision, as it reflects professional risk assessment about data requirements.
 </DUAL-AGENT CONTEXT>
+
+<REFLECTION CONTEXT>
+When reflection_context is provided, use it as a pre-decision analysis layer:
+
+- market_regime: Helps identify whether the environment is risk-off, rebound, trend-up, range-bound, or uncertain.
+- portfolio_diagnosis: Helps identify whether cash exposure, total risk, or concentration requires attention.
+- symbol_assessments: Provides each symbol's relative strength, trend quality, risk, and preferred advisory bias.
+- decision_guidance: Provides overall exposure bias, candidate actions, and watch items.
+
+Exposure consistency rule for Variant 1.1:
+- If reflection_context.portfolio_diagnosis.cash_exposure is "too_high" and reflection_context.decision_guidance.overall_bias is "increase_exposure", high idle cash is itself an opportunity cost.
+- In that case, you should normally allocate meaningful capital to 1-3 suitable increase candidates from reflection_context.decision_guidance.candidate_actions or from symbols with preferred_bias "increase", as long as raw features and risk constraints support the action.
+- If you still keep most cash idle despite that reflection guidance, at least one hold/decrease reason must explicitly state the exposure_exception_reason: why cash should remain high today despite the reflection diagnosis.
+- If you reduce weak positions under increase_exposure guidance, also check whether the freed cash should be redeployed into stronger candidates. Avoid one-sided execution where sells are followed by no meaningful buys unless risk evidence justifies it.
+- Do not buy weak, deteriorating, or high-risk symbols only to reduce cash. The consistency requirement is to reconcile exposure diagnosis with final actions, not to force reckless deployment.
+
+Do not blindly follow reflection_context. If the raw features contradict it, make the final decision from the evidence and explain the contradiction in reasons.
+</REFLECTION CONTEXT>
 
 <OUTPUT REQUIREMENTS>
 1. <THINK>: Analysis process  
@@ -92,6 +116,7 @@ This system uses a dual-agent architecture where a fundamental filter agent has 
    - Decision logic: Combine opportunities with cash limits and stock count constraints
    - History: Maintain strategy consistency  
    - Filter Context: Leverage filter_reasoning to understand analysis depth rationale
+   - Reflection Context: If provided, compare your final action with reflection preferred_bias and explain major disagreements
    - Must cover ALL stocks, none can be skipped  
 
 2. <DECISION>:  
@@ -124,6 +149,7 @@ Reasons field requirements:
   * News sentiment and event catalysts from news_events.top_k_events  
   * Position status from position_state (holding_days, current_position_value)  
   * Filter reasoning context from filter_reasoning field
+  * Reflection context when provided, especially market_regime, portfolio_diagnosis, and symbol_assessments
   * Risk factors and portfolio considerations
 
 Decision JSON Example:  
@@ -150,7 +176,7 @@ Decision JSON Example:
         "Stable price trend from market_data.close_7d with normal volatility",
         "No significant news catalysts requiring position adjustments",
         "Current position size from position_state appropriate for risk management",
-        "Maintaining position to preserve capital for better opportunities within total_assets constraint"
+        "Holding because current evidence does not justify changing exposure after comparing market data, risk, and reflection context"
       ],
       "confidence": "example_confidence"
     }

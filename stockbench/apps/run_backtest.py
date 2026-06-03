@@ -31,6 +31,7 @@ def main(
     min_holding_days: int = typer.Option(None, help="Minimum holding days (use config if empty)"),
     # Agent mode selection
     agent_mode: str = typer.Option(None, help="Agent mode: dual|single (use config if empty)"),
+    reflection_agent: Optional[bool] = typer.Option(None, "--reflection-agent/--no-reflection-agent", help="Enable Variant 1 reflection agent before decision agent"),
     # LLM profile switching
     llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
     # News sentiment aggregation
@@ -116,6 +117,8 @@ def main(
     # Agent mode override
     if agent_mode is not None:
         config.setdefault("agents", {})["mode"] = str(agent_mode)
+    if reflection_agent is not None:
+        config.setdefault("agents", {}).setdefault("dual_agent", {}).setdefault("reflection_agent", {})["enabled"] = bool(reflection_agent)
     # Backtest summary
     if summary_llm is not None:
         config.setdefault("backtest", {})["summary_llm"] = bool(summary_llm)
@@ -200,4 +203,4 @@ def main(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    app() 
+    app()

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 from stockbench.llm.llm_client import LLMClient, LLMConfig
 from stockbench.utils.formatting import round_numbers_in_obj
 from stockbench.agents.fundamental_filter_agent import filter_stocks_needing_fundamental
+from stockbench.agents.reflection_agent import generate_portfolio_reflection
 from stockbench.core.features import build_features_for_prompt
 
 
@@ -353,6 +354,28 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
         
         client = LLMClient()
         
+        reflection_context = None
+        reflection_cfg = dual_agent_cfg.get("reflection_agent", {})
+        reflection_enabled = bool(reflection_cfg.get("enabled", False))
+        if reflection_enabled:
+            logger.info("[DUAL_AGENT] Step 3: Calling reflection agent")
+            reflection_context = generate_portfolio_reflection(
+                features_list=enhanced_features_list,
+                cfg=cfg,
+                enable_llm=enable_llm,
+                run_id=run_id,
+                previous_decisions=previous_decisions,
+                decision_history=decision_history,
+                ctx=ctx,
+            )
+            logger.info(
+                "[DUAL_AGENT] Reflection completed: market_regime=%s, overall_bias=%s",
+                reflection_context.get("market_regime", "unknown") if isinstance(reflection_context, dict) else "unknown",
+                ((reflection_context.get("decision_guidance", {}) or {}).get("overall_bias", "unknown") if isinstance(reflection_context, dict) else "unknown"),
+            )
+        else:
+            logger.info("[DUAL_AGENT] Step 3: Reflection agent disabled")
+
         return _decide_batch_portfolio_dual_agent(
             enhanced_features_list,
             llm_cfg,
@@ -366,6 +389,7 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
             decision_history,
             ctx,
             rejected_orders,
+            reflection_context,
         )
     
     except Exception as e:
@@ -397,7 +421,8 @@ def _decide_batch_portfolio_dual_agent(features_list: List[Dict], llm_cfg: LLMCo
                                       client: LLMClient, meta_agg: Dict, cfg: Dict, bars_data: Dict, 
                                       run_id: Optional[str], previous_decisions: Optional[Dict] = None, 
                                       decision_history: Optional[Dict[str, List[Dict]]] = None, ctx: Dict = None, 
-                                      rejected_orders: Optional[List[Dict]] = None) -> Dict[str, Dict]:
+                                      rejected_orders: Optional[List[Dict]] = None,
+                                      reflection_context: Optional[Dict] = None) -> Dict[str, Dict]:
     """Dual-agent batch portfolio decision making with comprehensive retry mechanism"""
     results = {}
     
@@ -462,6 +487,16 @@ def _decide_batch_portfolio_dual_agent(features_list: List[Dict], llm_cfg: LLMCo
         "symbols": symbols,
         "history": history
     }
+    if reflection_context:
+        reflection_meta = reflection_context.get("__meta__", {}) if isinstance(reflection_context, dict) else {}
+        portfolio_input["reflection_context"] = {
+            k: v for k, v in reflection_context.items() if k != "__meta__"
+        } if isinstance(reflection_context, dict) else reflection_context
+        meta_agg["reflection_enabled"] = True
+        meta_agg["reflection_prompt_version"] = reflection_meta.get("prompt_version")
+        meta_agg["reflection_cached"] = bool(reflection_meta.get("cached", False))
+    else:
+        meta_agg["reflection_enabled"] = False
     
     # Build base user prompt
     base_user_prompt = json.dumps(round_numbers_in_obj(portfolio_input, 2), ensure_ascii=False)
