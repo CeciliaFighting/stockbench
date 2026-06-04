@@ -32,6 +32,7 @@ def main(
     # Agent mode selection
     agent_mode: str = typer.Option(None, help="Agent mode: dual|single (use config if empty)"),
     reflection_agent: Optional[bool] = typer.Option(None, "--reflection-agent/--no-reflection-agent", help="Enable Variant 1 reflection agent before decision agent"),
+    fundamental_features: Optional[bool] = typer.Option(None, "--fundamental-features/--no-fundamental-features", help="Enable raw fundamental feature enrichment before decision agent"),
     # LLM profile switching
     llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|deepseek-v4-flash|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
     use_deepseek: bool = typer.Option(False, "--use-deepseek", help="Use DeepSeek V4 Flash and DEEPSEEK_API_KEY for this run"),
@@ -159,6 +160,8 @@ def main(
         config.setdefault("agents", {})["mode"] = str(agent_mode)
     if reflection_agent is not None:
         config.setdefault("agents", {}).setdefault("dual_agent", {}).setdefault("reflection_agent", {})["enabled"] = bool(reflection_agent)
+    if fundamental_features is not None:
+        config.setdefault("features", {}).setdefault("fundamental", {})["enabled"] = bool(fundamental_features)
     # Backtest summary
     if summary_llm is not None:
         config.setdefault("backtest", {})["summary_llm"] = bool(summary_llm)

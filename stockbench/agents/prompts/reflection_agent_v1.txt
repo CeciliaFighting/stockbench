@@ -11,9 +11,12 @@ Input:
 - symbols:
   - each symbol contains structured features:
     - market_data: recent prices and date
+    - derived_market_data: optional explicit momentum, volatility, drawdown, and opening gap factors
     - fundamental_data: optional fundamental indicators
     - news_events: recent news
     - position_state: current holding value, holding days, shares
+    - portfolio_features: optional position_weight, cash_ratio, and is_held
+    - cross_sectional_features: optional rank percentiles for momentum, return, and low volatility, plus relative_strength_bucket
     - filter_reasoning: why the fundamental filter included or excluded fundamental data
 - history:
   - recent actions, target position values, reasons, and confidence
@@ -22,8 +25,9 @@ Reflection objectives:
 1. Identify the broad market regime from the input only.
 2. Diagnose portfolio-level issues such as excessive cash, excessive exposure, concentration, or elevated risk.
 3. Assess each symbol's relative strength, trend quality, risk, and preferred bias.
-4. Provide guidance to the decision agent without giving exact order sizes.
-5. Make the reasoning auditable and based only on the provided data.
+4. Use explicit quant factors when present to compare momentum, volatility, portfolio exposure, and relative strength.
+5. Provide guidance to the decision agent without giving exact order sizes.
+6. Make the reasoning auditable and based only on the provided data.
 
 Important constraints:
 - Do not use future information.

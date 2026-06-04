@@ -126,6 +126,18 @@ def filter_stocks_needing_fundamental(features_list: List[Dict], cfg: Dict | Non
             }
         }
     """
+
+    fundamental_cfg = ((cfg or {}).get("features", {}) or {}).get("fundamental", {})
+    if not bool(fundamental_cfg.get("enabled", False)):
+        symbols = [item.get("symbol", "UNKNOWN") for item in features_list]
+        logger.info("[FUNDAMENTAL_FILTER] Fundamental features disabled; no stocks require fundamental enrichment")
+        return {
+            "stocks_need_fundamental": [],
+            "reasoning": {
+                symbol: "Fundamental features disabled for Variant 1.0; using price, portfolio, and semantic features only"
+                for symbol in symbols
+            }
+        }
     
     # If LLM not enabled, require fundamental analysis for all stocks (conservative fallback)
     if not enable_llm:

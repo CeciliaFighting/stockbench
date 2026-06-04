@@ -67,6 +67,7 @@ TIMESPAN="${TIMESPAN:-day}"
 AGENT_MODE="${AGENT_MODE:-dual}"
 DATA_MODE="${DATA_MODE:-offline_only}"  # auto | offline_only
 REFLECTION_AGENT="${REFLECTION_AGENT:-false}"  # true | false
+FUNDAMENTAL_FEATURES="${FUNDAMENTAL_FEATURES:-false}"  # true | false
 
 # Output directories
 OUTPUT_DIR="storage/reports/backtest"
@@ -123,6 +124,13 @@ run_backtest() {
     elif [[ "${REFLECTION_AGENT}" == "false" || "${REFLECTION_AGENT}" == "0" || "${REFLECTION_AGENT}" == "no" ]]; then
         REFLECTION_OPTION="--no-reflection-agent"
     fi
+
+    local FUNDAMENTAL_OPTION=""
+    if [[ "${FUNDAMENTAL_FEATURES}" == "true" || "${FUNDAMENTAL_FEATURES}" == "1" || "${FUNDAMENTAL_FEATURES}" == "yes" ]]; then
+        FUNDAMENTAL_OPTION="--fundamental-features"
+    elif [[ "${FUNDAMENTAL_FEATURES}" == "false" || "${FUNDAMENTAL_FEATURES}" == "0" || "${FUNDAMENTAL_FEATURES}" == "no" ]]; then
+        FUNDAMENTAL_OPTION="--no-fundamental-features"
+    fi
     
     # Build backtest command
     local DEEPSEEK_OPTION=""
@@ -138,6 +146,7 @@ run_backtest() {
         --agent-mode \"${AGENT_MODE}\" \
         --data-mode \"${DATA_MODE}\" \
         ${REFLECTION_OPTION} \
+        ${FUNDAMENTAL_OPTION} \
         ${DEEPSEEK_OPTION} \
         ${CACHE_OPTION} \
         ${EXTRA_OPTS}"
@@ -184,6 +193,7 @@ main() {
     log_info "  Agent mode: ${AGENT_MODE}"
     log_info "  Data mode: ${DATA_MODE}"
     log_info "  Reflection agent: ${REFLECTION_AGENT}"
+    log_info "  Fundamental features: ${FUNDAMENTAL_FEATURES}"
     log_info "  LLM profile: ${LLM_PROFILE}"
     if [[ "${USE_DEEPSEEK}" == "true" || "${LLM_PROFILE}" == "deepseek-v4-flash" ]]; then
         log_info "  LLM API key source: Deepseek (DEEPSEEK_API_KEY); model: deepseek-v4-flash"
@@ -297,6 +307,14 @@ while [[ $# -gt 0 ]]; do
             REFLECTION_AGENT="false"
             shift
             ;;
+        --fundamental-features)
+            FUNDAMENTAL_FEATURES="true"
+            shift
+            ;;
+        --no-fundamental-features)
+            FUNDAMENTAL_FEATURES="false"
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [options]"
             echo ""
@@ -311,10 +329,12 @@ while [[ $# -gt 0 ]]; do
             echo "  --data-mode MODE      Data mode: offline_only|auto (default: ${DATA_MODE})"
             echo "  --reflection-agent    Enable Variant 1 reflection agent"
             echo "  --no-reflection-agent Disable Variant 1 reflection agent"
+            echo "  --fundamental-features    Enable raw fundamental feature enrichment"
+            echo "  --no-fundamental-features Disable raw fundamental feature enrichment"
             echo "  --help, -h            Show this help message"
             echo ""
             echo "Environment variables:"
-            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE, REFLECTION_AGENT"
+            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE, REFLECTION_AGENT, FUNDAMENTAL_FEATURES"
             echo "  USE_DEEPSEEK=true      Use DeepSeek V4 Flash with DEEPSEEK_API_KEY for this run"
             echo "  STOCKBENCH_DATA_CACHE_DIR Shared data cache directory; LLM cache remains worktree-local"
             echo "  DEEPSEEK_API_KEY       Required only when --use-deepseek or USE_DEEPSEEK=true is used"

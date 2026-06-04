@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Optional
 import os
 import json
+import math
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,145 @@ def _load_prompt(name: str) -> str:
 def _prompt_version(name: str) -> str:
     base = os.path.splitext(name)[0]
     return base.replace("_", "/")
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+        if math.isfinite(result):
+            return result
+    except (TypeError, ValueError):
+        pass
+    return default
+
+
+def _pct_change(new_value: float, old_value: float) -> float:
+    if old_value <= 0:
+        return 0.0
+    return (new_value / old_value) - 1.0
+
+
+def _rank_pct(values: Dict[str, float], higher_is_better: bool = True) -> Dict[str, float]:
+    valid_items = [(symbol, value) for symbol, value in values.items() if math.isfinite(value)]
+    if not valid_items:
+        return {symbol: 0.5 for symbol in values}
+    if len(valid_items) == 1:
+        return {valid_items[0][0]: 1.0}
+
+    valid_items.sort(key=lambda item: item[1])
+    denom = len(valid_items) - 1
+    ranks = {}
+    for idx, (symbol, _value) in enumerate(valid_items):
+        pct = idx / denom
+        ranks[symbol] = pct if higher_is_better else 1.0 - pct
+    return {symbol: ranks.get(symbol, 0.5) for symbol in values}
+
+
+def _strength_bucket(rank_pct: float) -> str:
+    if rank_pct >= 0.8:
+        return "top"
+    if rank_pct <= 0.2:
+        return "bottom"
+    return "middle"
+
+
+def _compute_price_quant_features(features: Dict) -> Dict[str, float]:
+    market_data = features.get("market_data", {}) if isinstance(features, dict) else {}
+    close_series = market_data.get("close_7d", [])
+    closes = [_safe_float(value) for value in close_series if _safe_float(value) > 0]
+    open_price = _safe_float(market_data.get("open", 0.0))
+
+    if not closes:
+        return {
+            "return_1d": 0.0,
+            "return_3d": 0.0,
+            "return_5d": 0.0,
+            "momentum_7d": 0.0,
+            "volatility_7d": 0.0,
+            "drawdown_7d": 0.0,
+            "open_gap_vs_prev_close": 0.0,
+        }
+
+    last_close = closes[-1]
+    daily_returns = [_pct_change(closes[i], closes[i - 1]) for i in range(1, len(closes))]
+    volatility = 0.0
+    if len(daily_returns) > 1:
+        mean_ret = sum(daily_returns) / len(daily_returns)
+        variance = sum((ret - mean_ret) ** 2 for ret in daily_returns) / (len(daily_returns) - 1)
+        volatility = math.sqrt(max(variance, 0.0))
+
+    rolling_peak = max(closes) if closes else 0.0
+    drawdown = _pct_change(last_close, rolling_peak) if rolling_peak > 0 else 0.0
+
+    return {
+        "return_1d": _pct_change(closes[-1], closes[-2]) if len(closes) >= 2 else 0.0,
+        "return_3d": _pct_change(closes[-1], closes[-4]) if len(closes) >= 4 else 0.0,
+        "return_5d": _pct_change(closes[-1], closes[-6]) if len(closes) >= 6 else 0.0,
+        "momentum_7d": _pct_change(closes[-1], closes[0]) if len(closes) >= 2 else 0.0,
+        "volatility_7d": volatility,
+        "drawdown_7d": min(drawdown, 0.0),
+        "open_gap_vs_prev_close": _pct_change(open_price, last_close) if open_price > 0 else 0.0,
+    }
+
+
+def _attach_quant_factor_features(features_list: List[Dict], cfg: Dict | None = None, ctx: Dict | None = None) -> List[Dict]:
+    quant_cfg = ((cfg or {}).get("features", {}) or {}).get("quant_factors", {})
+    if not bool(quant_cfg.get("enabled", True)):
+        return features_list
+
+    total_position_value = 0.0
+    for item in features_list:
+        features = item.get("features", {})
+        position_state = features.get("position_state", {})
+        total_position_value += _safe_float(position_state.get("current_position_value", 0.0))
+
+    if ctx and "portfolio" in ctx:
+        available_cash = _safe_float(getattr(ctx["portfolio"], "cash", 0.0))
+        total_assets = available_cash + total_position_value
+    else:
+        total_assets = _safe_float((cfg or {}).get("portfolio", {}).get("total_cash", 100000.0), 100000.0)
+        available_cash = max(total_assets - total_position_value, 0.0)
+
+    cash_ratio = available_cash / total_assets if total_assets > 0 else 0.0
+
+    momentum_values: Dict[str, float] = {}
+    return_5d_values: Dict[str, float] = {}
+    volatility_values: Dict[str, float] = {}
+
+    for item in features_list:
+        symbol = item.get("symbol", "UNKNOWN")
+        features = item.get("features", {})
+        derived_market = _compute_price_quant_features(features)
+        features["derived_market_data"] = derived_market
+        momentum_values[symbol] = derived_market["momentum_7d"]
+        return_5d_values[symbol] = derived_market["return_5d"]
+        volatility_values[symbol] = derived_market["volatility_7d"]
+
+        position_state = features.get("position_state", {})
+        current_position_value = _safe_float(position_state.get("current_position_value", 0.0))
+        features["portfolio_features"] = {
+            "position_weight": current_position_value / total_assets if total_assets > 0 else 0.0,
+            "cash_ratio": cash_ratio,
+            "is_held": current_position_value > 1e-6,
+        }
+
+    momentum_ranks = _rank_pct(momentum_values, higher_is_better=True)
+    return_5d_ranks = _rank_pct(return_5d_values, higher_is_better=True)
+    volatility_ranks = _rank_pct(volatility_values, higher_is_better=False)
+
+    for item in features_list:
+        symbol = item.get("symbol", "UNKNOWN")
+        features = item.get("features", {})
+        momentum_rank = momentum_ranks.get(symbol, 0.5)
+        features["cross_sectional_features"] = {
+            "momentum_7d_rank_pct": momentum_rank,
+            "return_5d_rank_pct": return_5d_ranks.get(symbol, 0.5),
+            "low_volatility_rank_pct": volatility_ranks.get(symbol, 0.5),
+            "relative_strength_bucket": _strength_bucket(momentum_rank),
+        }
+
+    logger.info("[QUANT_FACTORS] Added F1.0 momentum, volatility, portfolio exposure, and relative strength features")
+    return features_list
 
 
 def _filter_hallucination_decisions(decisions_data: dict, valid_symbols: set) -> dict:
@@ -124,8 +264,8 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
     Dual agent batch decision making. Input is features list, returns {symbol: decision_output_dict}.
     
     This function implements the dual-agent architecture:
-    1. Step 1: Fundamental Filter Agent - determines which stocks need fundamental analysis
-    2. Step 2: Enhanced Feature Construction - builds features with/without fundamental data based on filtering
+    1. Optional Step 1: Fundamental Filter Agent - determines which stocks need fundamental analysis
+    2. Step 2: Feature Construction - optionally rebuilds fundamental data, then attaches quant factors
     3. Step 3: Decision Agent - makes final trading decisions
     
     Args:
@@ -278,6 +418,8 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
                 "features": enhanced_features
             }
             enhanced_features_list.append(enhanced_item)
+
+        enhanced_features_list = _attach_quant_factor_features(enhanced_features_list, cfg=cfg, ctx=ctx)
             
         # Calculate statistics for monitoring
         stocks_with_fundamental = len(stocks_need_fundamental)

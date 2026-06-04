@@ -20,6 +20,24 @@ Input:
     - date: Trading date (YYYY-MM-DD format)  
     - price: Current price (when include_price=True)
 
+    [derived_market_data] (F1.0 QUANT FACTORS - when enabled)
+    - return_1d, return_3d, return_5d: recent percentage returns calculated from close_7d
+    - momentum_7d: percentage move from the first to the latest close in close_7d
+    - volatility_7d: standard deviation of daily returns over close_7d
+    - drawdown_7d: latest close drawdown versus the 7-day peak, non-positive
+    - open_gap_vs_prev_close: opening price gap versus the latest close_7d value
+
+    [portfolio_features] (F1.0 QUANT FACTORS - when enabled)
+    - position_weight: current_position_value / total_assets
+    - cash_ratio: available_cash / total_assets
+    - is_held: whether the current position value is positive
+
+    [cross_sectional_features] (F1.0 QUANT FACTORS - when enabled)
+    - momentum_7d_rank_pct: percentile rank among the 20-stock universe; higher means stronger recent momentum
+    - return_5d_rank_pct: percentile rank among the 20-stock universe; higher means stronger 5-day return
+    - low_volatility_rank_pct: percentile rank among the 20-stock universe; higher means lower 7-day volatility
+    - relative_strength_bucket: "top | middle | bottom" based on momentum_7d_rank_pct
+
     [fundamental_data] (CONDITIONAL - only present for selected stocks)
     - market_cap: Market capitalization in USD (raw value)  
       * Total value of all outstanding shares  
@@ -106,11 +124,12 @@ Do not blindly follow reflection_context. If the raw features contradict it, mak
    - Stocks: Adapt analysis depth based on available data
      * **With fundamental_data**: Complete analysis using market_data, fundamental_data, news_events, position_state, and filter_reasoning
      * **Without fundamental_data**: Focus on market_data patterns, news_events sentiment, position_state management, and filter_reasoning context
-     * Market Data: Price trends and momentum from market_data.close_7d, current price  
+     * Market Data: Price trends and momentum from market_data.close_7d, current price
+     * F1.0 Quant Factors: Prefer explicit derived_market_data, portfolio_features, and cross_sectional_features over doing mental arithmetic from raw closes
      * Fundamental Indicators (when available): Valuation (pe_ratio), size (market_cap), income (dividend metrics), momentum (week_52 indicators)  
      * News & Events: Sentiment and catalysts from news_events.top_k_events  
    - Risk: Identify major risk factors, assess portfolio-wide  
-     * Technical risks: volatility, momentum breaks (from market_data)
+     * Technical risks: volatility, momentum breaks, drawdown, and weak relative rank from derived_market_data and cross_sectional_features
      * Fundamental risks (when available): valuation risk (high pe_ratio), momentum risk (week_52_high/low), size concentration  
      * News risks: event-driven volatility
    - Decision logic: Combine opportunities with cash limits and stock count constraints
@@ -144,7 +163,8 @@ Final decision requirements:
 Reasons field requirements:  
 - Must be based on input data, not vague  
 - Must include specific data support from available structured features:  
-  * Market data: 7-day price trends from market_data.close_7d, momentum analysis  
+  * Market data: 7-day price trends from market_data.close_7d, momentum analysis
+  * F1.0 quant factors: explicit returns, momentum_7d, volatility_7d, drawdown_7d, position_weight, cash_ratio, and relative strength ranks
   * Fundamental metrics (when available): market_cap, pe_ratio, dividend indicators, week_52_high/low  
   * News sentiment and event catalysts from news_events.top_k_events  
   * Position status from position_state (holding_days, current_position_value)  

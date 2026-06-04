@@ -13,9 +13,12 @@ Input:
 - symbols:
   - each symbol contains structured features:
     - market_data: recent prices and date
+    - derived_market_data: F1.0 explicit momentum, volatility, drawdown, and opening gap factors
     - fundamental_data: optional fundamental indicators
     - news_events: recent news
     - position_state: current holding value, holding days, shares
+    - portfolio_features: F1.0 position_weight, cash_ratio, and is_held
+    - cross_sectional_features: F1.0 rank percentiles for momentum, return, and low volatility, plus relative_strength_bucket
     - filter_reasoning: why the fundamental filter included or excluded fundamental data
 - history:
   - recent actions, target position values, reasons, and confidence
@@ -25,8 +28,9 @@ Reflection objectives:
 2. Diagnose portfolio-level issues such as excessive cash, excessive exposure, concentration, or elevated risk.
 3. Estimate a qualitative target equity exposure band suitable for the current regime and risk level.
 4. Assess each symbol's relative strength, trend quality, risk, and preferred bias.
-5. Provide a short candidate action list that connects portfolio diagnosis to symbol-level opportunities.
-6. Make the reasoning auditable and based only on the provided data.
+5. Use F1.0 quant factors to compare momentum, volatility, position weight, cash ratio, and relative strength across the universe.
+6. Provide a short candidate action list that connects portfolio diagnosis to symbol-level opportunities.
+7. Make the reasoning auditable and based only on the provided data.
 
 Exposure calibration guidance:
 - If cash_ratio is high while market_regime is rebound, trend_up, or range_bound and several symbols are strong or improving, cash_exposure should usually be "too_high".

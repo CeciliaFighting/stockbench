@@ -40,6 +40,10 @@ features:
   # Historical data window control
   history:
     price_series_days: 7      # Price series for the past 7 trading days, e.g., close_7d or day_ret
+  quant_factors:
+    enabled: true             # F1.0: expose momentum, volatility, position weight, cash ratio, and relative strength rank
+  fundamental:
+    enabled: false            # F1.0: keep fundamental data out; F1.1 will add cleaned as-of fundamental features
 
 # News configuration
 news:
@@ -92,8 +96,8 @@ llm_profiles:
   efundgpt:
     provider: "openai"
     base_url: "https://aigc.efunds.com.cn/v1"
-    model: "EFundGPT-air"
-    backtest_report_model: "EFundGPT-air"
+    model: "EFundGPT-max"
+    backtest_report_model: "EFundGPT-max"
     auth_required: true
     timeout_sec: 180
     retry:
