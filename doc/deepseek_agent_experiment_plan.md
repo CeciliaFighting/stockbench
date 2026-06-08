@@ -2473,3 +2473,378 @@ any module that broadly reduces all sell/add actions
 ```
 
 F9 的研究价值主要在于排除了两个看似合理但实证不佳的方向：generic sell confirmation 和 quality-trap hard add check。真正可复用的是 F9A 的低权限 buy/add sizing 思路。
+
+## 17. F10 下一阶段实验计划：基于分层优化的组合验证
+
+F10 不再继续扩展 generic reflection、hard quant veto 或复杂 thesis memory，而是基于已经被实验验证过的低权限模块，做更干净的组合验证。
+
+核心原则：
+
+```text
+base 不从 F6 出发，而从 F5_COOLDOWN_5D 出发；
+保留 FUND1 cleaned fundamental 和 5d reversal cooldown；
+优先组合 F8C 的 rebound_catchup_tag；
+只借用 F9A 的低权限 buy/add sizing 思路；
+不复用 F9B 的 generic sell confirmation；
+不复用 F9C 的 hard quality-trap add block；
+所有新增模块必须可归因、可计数、可单独 ablation。
+```
+
+### 17.1 F10 的 base 选择
+
+F10 的建议底座为：
+
+```text
+F10_BASE = F5_COOLDOWN_5D
+         = FUND1 cleaned fundamental
+         + anti-overtrade memory
+         + 5d reversal cooldown
+```
+
+选择该底座的原因：
+
+| 版本 | Total Return | Max Drawdown | Sharpe | Sortino | 结论 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| FUND1 | +3.35% | -11.61% | 0.471 | 0.038 | cleaned fundamental 有明确正贡献 |
+| F5_COOLDOWN_5D | +3.99% | -9.16% | 0.557 | 0.043 | 当前最强低权限执行层版本 |
+| F8C_REBOUND_CATCHUP_TAG_FULL | +3.83% | -10.42% | 0.509 | 0.041 | rebound tag 有继续组合价值 |
+| F9A_BUY_ADD_ONLY_REDUCE_REVIEW_FULL | +3.36% | -9.73% | 0.500 | 0.039 | buy/add sizing 可作为轻量辅助 |
+
+因此，F10 的问题不是“重新寻找 base”，而是验证：
+
+```text
+在 F5_COOLDOWN_5D 已经降低低质量反向交易后，
+rebound tag、winner-hold soft tag、buy/add sizing 是否还能继续提升 winner exposure 和风险调整收益。
+```
+
+### 17.2 F10 实验矩阵
+
+建议下一阶段先跑 3 个核心组合，不要一次性开太多发散分支。
+
+| 实验 | 组成 | 主要改进层 | 目标 |
+| --- | --- | --- | --- |
+| F10A_COOLDOWN_REBOUND | F5_COOLDOWN_5D + rebound_catchup_tag | 数据/特征层、选股层、买入候选排序层 | 提升 MSFT/BA/IBM/GS/HON 等 winner exposure |
+| F10B_REBOUND_BUY_ADD_SIZING | F10A + narrow buy/add reduce-only sizing | 买入候选排序层、执行层、风险预算层 | 在不 hard veto 的情况下降低低质量加仓和回撤 |
+| F10C_REBOUND_WINNER_HOLD_SOFT | F10A + winner_hold soft tag | 持仓管理层、卖出审查层 | 减少卖飞强势持仓，但避免 F9B 式泛化 sell confirmation |
+
+可选的最终组合：
+
+```text
+F10D_FULL_LOW_PERMISSION =
+  F5_COOLDOWN_5D
+  + rebound_catchup_tag
+  + narrow buy/add reduce-only sizing
+  + winner_hold soft tag
+```
+
+F10D 只应在 F10A/F10B/F10C 至少有两个方向为正时运行。否则容易再次出现 F6/F9 式的模块叠加过度约束。
+
+### 17.3 分层优化设计
+
+#### 17.3.1 数据/特征层
+
+目标：保留 FUND1 的 cleaned fundamental 价值，同时加入少量低噪音 soft tags。
+
+建议新增或强化：
+
+```text
+rebound_participation_tag
+relative_strength_tag
+winner_hold_tag
+defensive_lagging_tag
+```
+
+定义：
+
+| Tag | 含义 | 用途 | 权限 |
+| --- | --- | --- | --- |
+| rebound_participation_tag | 股票是否参与市场反弹，是否跑赢 SPY / 20-stock universe | 帮助识别反弹 winner | soft positive tag |
+| relative_strength_tag | 20d/60d 相对强弱排名 | 买入排序和持仓保护 | soft ranking hint |
+| winner_hold_tag | 已持仓且趋势/基本面未破坏的强势股 | 防止低置信卖飞 | sell caution only |
+| defensive_lagging_tag | 低波动但明显跑输反弹行情的防御股 | 降低新增买入优先级 | soft negative tag |
+
+禁止事项：
+
+```text
+不生成 overall quant score；
+不把 volatility/drawdown 混入 alpha priority；
+不做 hard veto；
+不把 tag 写成长篇自然语言解释。
+```
+
+#### 17.3.2 选股层
+
+目标：不硬排除股票，而是给 decision agent 更清晰的候选分层。
+
+建议输出：
+
+```text
+candidate_tier:
+  core_candidate
+  watch_candidate
+  hold_only
+  reduce_only
+```
+
+规则倾向：
+
+```text
+core_candidate:
+  fundamental positive
+  relative_strength strong
+  rebound_participation strong
+
+watch_candidate:
+  signal mixed
+  only small initial buy allowed
+
+hold_only:
+  existing position acceptable
+  no strong add evidence
+
+reduce_only:
+  clear deterioration
+  risk budget breach
+```
+
+该层只影响提示和排序，不直接下单。
+
+#### 17.3.3 买入候选排序层
+
+目标：解决 FUND1/F5 仍可能把新增资金分配给低弹性防御股的问题。
+
+建议构造低权限 `buy_priority_hint`：
+
+```text
+positive:
+  cleaned fundamental strength
+  rebound participation
+  relative strength
+  high-quality positive event
+
+negative:
+  defensive_lagging
+  repeated low-conviction add
+  position already near cap
+```
+
+执行方式：
+
+```text
+只影响 LLM prompt 中的候选排序；
+或只影响 post-decision add size；
+不允许直接把 buy 改成 reject；
+不允许替代 decision_agent 的原始判断。
+```
+
+#### 17.3.4 决策架构层
+
+目标：不回到 generic reflection，而是把审查放到具体订单之后。
+
+推荐架构：
+
+```text
+features
+-> decision_agent generates initial decisions
+-> low-permission order overlays
+-> execution
+-> attribution
+```
+
+不推荐：
+
+```text
+features -> generic reflection_agent -> decision_agent
+```
+
+原因：
+
+```text
+generic reflection 权限过大；
+输出难归因；
+容易让模型整体保守；
+和 decision_agent 职责重叠；
+M1/reflection 结果已经显示收益没有改善。
+```
+
+F10 中如果需要 reviewer，应只审具体动作：
+
+```text
+buy/add reviewer: reduce size only
+sell reviewer: only caution for confirmed winner_hold
+risk reviewer: cap size only
+```
+
+#### 17.3.5 执行层
+
+目标：保留 F5_COOLDOWN_5D 的成功机制。
+
+必须保留：
+
+```text
+5d reversal cooldown
+anti-overtrade memory
+allow risk-reducing sell exception
+allow high-confidence thesis invalidation exception
+```
+
+不建议：
+
+```text
+10d cooldown
+weekly/monthly long-horizon rebalance
+generic delay
+hard reject except position/data/cooldown violation
+```
+
+F10 的执行层重点不是继续降交易数，而是减少低质量反向交易，同时保留反弹行情里的快速纠错能力。
+
+#### 17.3.6 持仓管理层
+
+目标：减少卖飞 winner，但不重复 F9B 的失败。
+
+建议只做 `winner_hold_soft_tag`：
+
+触发条件必须较窄：
+
+```text
+current position exists
+relative_strength_tag = strong
+rebound_participation_tag = strong
+fundamental_signal not deteriorated
+no clear negative news
+position not over risk cap
+```
+
+允许动作：
+
+```text
+low-confidence full sell -> reduce to partial sell
+low-confidence partial sell -> hold or smaller trim
+high-confidence thesis invalidation -> allow sell
+risk-reducing sell -> allow sell
+```
+
+禁止动作：
+
+```text
+不对所有 sell 做二次确认；
+不因为 winner_hold_tag 永久禁止卖出；
+不阻止明确风险释放。
+```
+
+#### 17.3.7 风险预算层
+
+目标：风险只控制仓位，不接管选股。
+
+建议：
+
+```text
+normal regime:
+  max single position 10%-12%
+
+confirmed winner:
+  max single position 12%-14%
+
+extreme risk-off:
+  max single position 6%-8%
+  restrict new high-risk adds
+```
+
+不建议：
+
+```text
+regime factor weights
+market regime changes alpha ranking
+volatility directly penalizes alpha
+```
+
+F4/F5_REGIME_FACTOR_WEIGHTS 的失败说明，regime 作为因子权重层容易错过反弹。F10 中 regime 只能做 risk budget。
+
+#### 17.3.8 归因/评估层
+
+F10 必须在报告中回答模块是否真的有贡献，不能只看最终收益。
+
+必须汇总：
+
+```text
+module_intervention_count
+rebound_tag exposure contribution
+winner_hold sell reductions
+buy/add sizing reductions
+blocked/reduced order future return 5d/10d
+allowed order future return 5d/10d
+market top5 exposure
+missed winner analysis
+MSFT/BA/IBM/HON/GS avg exposure
+trade_count
+trades_notional
+cash ratio
+monthly return
+April drawdown
+May-June rebound participation
+```
+
+成功标准不应只看 Total Return：
+
+```text
+Total Return >= F5_COOLDOWN_5D 或接近 F5 且 MDD 更优；
+Sortino >= F5_COOLDOWN_5D 或明显优于 FUND1；
+Top5 winner exposure 高于 F5；
+reduced buy/add future return 低于 allowed buy/add；
+winner_hold 保护的 sell 后续确实上涨；
+交易数不因模块叠加被压到极低。
+```
+
+### 17.4 推荐运行顺序
+
+建议按以下顺序运行：
+
+```text
+1. F10A_COOLDOWN_REBOUND
+2. F10B_REBOUND_BUY_ADD_SIZING
+3. F10C_REBOUND_WINNER_HOLD_SOFT
+4. F10D_FULL_LOW_PERMISSION, only if at least two of F10A/F10B/F10C are positive
+```
+
+如果 API 成本允许，最终候选应补充稳健性区间：
+
+```text
+main:
+  2025-03-03 to 2025-06-30
+
+extended:
+  2025-03-03 to 2025-12-31
+
+subperiod:
+  2025-03-03 to 2025-04-30
+  2025-05-01 to 2025-06-30
+```
+
+### 17.5 F10 预期结论模板
+
+F10 最终报告应明确回答：
+
+```text
+rebound_catchup_tag 是否提高 winner exposure；
+buy/add sizing 是否只是降低交易，还是确实减少低质量加仓；
+winner_hold_soft_tag 是否减少卖飞，而不是重复 F9B 的该卖不卖；
+组合后收益改善来自买入更好、持有更久、还是回撤下降；
+F10 是否优于 F5_COOLDOWN_5D，而不只是优于 FUND1 或 B0。
+```
+
+阶段性判断标准：
+
+```text
+若 F10A 优于 F5_COOLDOWN_5D：
+  rebound tag 成为下一阶段主线。
+
+若 F10B 优于 F10A：
+  F9A 的 low-permission buy/add sizing 可复用。
+
+若 F10C 明显弱于 F10A：
+  winner_hold 仍需更窄触发，不能做 sell gate。
+
+若 F10D 弱于 F10A：
+  模块组合过度约束，应回退到单模块正贡献版本。
+```
