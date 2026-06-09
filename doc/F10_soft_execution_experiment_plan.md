@@ -207,57 +207,65 @@ hard_reject_count
 
 如果模块触发很少，结果不能强归因于该模块。
 
-## 6. 当前运行安排
+## 6. 实验运行与主结果
 
-四组实验已按 worktree 并行运行，结果待补充。
+四组 F10 soft execution 实验已经完成。主报告只保留唯一有继续研究价值的版本：
 
-| Run ID | Branch | Worktree | Status |
-|---|---|---|---|
-| F10_EXEC_NT_BAND_ONLY | f10-exec-nt-band-only | `/home/terence/code/stockbench-f10-exec-nt-band-only` | running |
-| F10_EXEC_REDUCE_ONLY | f10-exec-reduce-only | `/home/terence/code/stockbench-f10-exec-reduce-only` | running |
-| F10_EXEC_PRIORITY_TURNOVER | f10-exec-priority-turnover | `/home/terence/code/stockbench-f10-exec-priority-turnover` | running |
-| F10_EXEC_SOFT_OPTIMIZER_FULL | f10-exec-soft-optimizer-full | `/home/terence/code/stockbench-f10-exec-soft-optimizer-full` | running |
+```text
+F10_EXEC_NT_BAND_ONLY
+```
+
+其余三组（`F10_EXEC_REDUCE_ONLY`、`F10_EXEC_PRIORITY_TURNOVER`、`F10_EXEC_SOFT_OPTIMIZER_FULL`）未纳入主结果表。原因是它们相对 F6 收益、回撤或交易行为明显变差，尤其 full 组合版出现过度干预。
+
+### 6.1 保留版本
+
+| Run ID | Branch | Worktree | Status | Report Dir |
+|---|---|---|---|---|
+| F10_EXEC_NT_BAND_ONLY | f10-exec-nt-band-only | `/home/terence/code/stockbench-f10-exec-nt-band-only` | completed | `/home/terence/code/stockbench-f10-exec-nt-band-only/storage/reports/backtest/F10_EXEC_NT_BAND_ONLY_20260609_040435_877553` |
 
 日志路径：
 
 ```text
 /home/terence/code/stockbench-f10-exec-nt-band-only/storage/logs/F10_EXEC_NT_BAND_ONLY.log
-/home/terence/code/stockbench-f10-exec-reduce-only/storage/logs/F10_EXEC_REDUCE_ONLY.log
-/home/terence/code/stockbench-f10-exec-priority-turnover/storage/logs/F10_EXEC_PRIORITY_TURNOVER.log
-/home/terence/code/stockbench-f10-exec-soft-optimizer-full/storage/logs/F10_EXEC_SOFT_OPTIMIZER_FULL.log
 ```
 
-## 7. 结果待补充
-
-实验完成后补充以下表格。
+## 7. 实验结果
 
 ### 7.1 总体结果
 
 | Run ID | Total Return | Sharpe | Sortino | Max Drawdown | Trades | Trades Notional | Avg Cash Ratio | Notes |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
-| F6 / F5_COOLDOWN_5D | TBD | TBD | TBD | TBD | TBD | TBD | TBD | baseline |
-| F10_EXEC_NT_BAND_ONLY | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| F10_EXEC_REDUCE_ONLY | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| F10_EXEC_PRIORITY_TURNOVER | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| F10_EXEC_SOFT_OPTIMIZER_FULL | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| F6 / F5_COOLDOWN_5D | +3.9913% | 0.556719 | 0.043074 | -9.1603% | 261 | 418155.76 | n/a | baseline |
+| F10_EXEC_NT_BAND_ONLY | +2.9943% | 0.477596 | 0.041265 | -10.2283% | 436 | 1008753.60 | n/a | 四组 F10 中最好，但仍弱于 F6 |
 
 ### 7.2 干预统计
 
-| Run ID | NT skip | NT partial | Reduced | Turnover partial | Turnover skip | Approved | Hard reject |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| F10_EXEC_NT_BAND_ONLY | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| F10_EXEC_REDUCE_ONLY | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| F10_EXEC_PRIORITY_TURNOVER | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| F10_EXEC_SOFT_OPTIMIZER_FULL | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Run ID | Reviewed Orders | Output Orders | NT skip | NT partial | Reduced | Turnover partial | Turnover skip | Approved | Hard reject |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| F10_EXEC_NT_BAND_ONLY | 595 | 437 | 158 | 216 | 0 | 0 | 0 | 437 | 0 |
 
-### 7.3 结论
+补充说明：
 
-待实验完成后补充：
+- `NT skip` 对应交易价值低于 no-trade band 的订单，直接转为 hold。
+- `NT partial` 对应小到中等偏离订单，执行 50% partial rebalance。
+- 最终实际成交 trades 为 436，略低于 soft execution 输出订单数 437，说明有 1 笔订单在后续执行层未形成成交。
+
+### 7.3 月度表现
+
+| Run ID | Mar 2025 | Apr 2025 | May 2025 | Jun 2025 |
+|---|---:|---:|---:|---:|
+| F10_EXEC_NT_BAND_ONLY | -3.70% | -3.68% | +4.68% | +3.31% |
+
+F10_EXEC_NT_BAND_ONLY 在 5-6 月仍参与了反弹，但 3-4 月的下行和整体回撤没有优于 F6。
+
+### 7.4 结论
 
 ```text
-Best F10 variant: TBD
-Whether F10 beats F6: TBD
-Primary useful mechanism: TBD
-Main failure mode if any: TBD
-Recommendation for next experiment: TBD
+Best F10 variant: F10_EXEC_NT_BAND_ONLY
+Whether F10 beats F6: No
+Primary useful mechanism: no-trade band / partial rebalance
+Main failure mode: 降低小额噪声交易有一定效果，但没有改善 F6 的整体收益和回撤；交易金额反而高于 F6
+Recommendation for next experiment: 不升级 F10 为主线；F6 仍保留为当前 baseline。如继续研究，只保留 no-trade band 作为轻量执行层候选，避免叠加 reduce-only 和 priority-turnover full 组合。
 ```
+
+整体判断：F10_EXEC_NT_BAND_ONLY 是四组 soft execution 里唯一值得记录的版本，因为它保持正收益、Sortino 接近 F6，且机制归因相对清晰；但它没有超过 F6，所以不能替代 F6 主线。
