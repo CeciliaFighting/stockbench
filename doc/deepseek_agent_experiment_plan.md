@@ -429,7 +429,7 @@ sell 后 5 天内默认不能 rebuy
 该 Buy & Hold baseline 在 2025-03-03 至 2025-06-30 区间的表现为：
 
 ```text
-20-stock equal-weight Buy & Hold return: +0.70%
+20-stock equal-weight Buy & Hold return: +0.7348%
 20-stock equal-weight Buy & Hold Sortino: 0.018
 20-stock equal-weight Buy & Hold Max Drawdown: -14.95%
 ```
@@ -438,19 +438,19 @@ sell 后 5 天内默认不能 rebuy
 
 | 实验 | Strategy Return | B&H Return | Excess vs B&H | Strategy Sortino | B&H Sortino | Sortino Δ | Strategy MDD | B&H MDD | MDD 改善 | Trades |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| F5 baseline | +3.83% | +0.70% | +3.13% | 0.045 | 0.018 | +0.027 | -12.41% | -14.95% | +2.54% | 363 |
-| F5_LH_WEEKLY_10D | +0.12% | +0.70% | -0.59% | 0.009 | 0.018 | -0.009 | -8.22% | -14.95% | +6.73% | 133 |
-| F5_LH_BIWEEKLY_20D | -0.26% | +0.70% | -0.96% | 0.007 | 0.018 | -0.011 | -12.52% | -14.95% | +2.43% | 50 |
-| F5_LH_MONTHLY_20D | -2.61% | +0.70% | -3.32% | -0.026 | 0.018 | -0.044 | -8.83% | -14.95% | +6.13% | 48 |
-| F5_COOLDOWN_5D | **+3.99%** | +0.70% | **+3.29%** | **0.043** | 0.018 | **+0.025** | **-9.16%** | -14.95% | **+5.79%** | 261 |
-| F5_COOLDOWN_10D | +0.57% | +0.70% | -0.13% | 0.016 | 0.018 | -0.002 | -11.81% | -14.95% | +3.14% | 240 |
-| F5_QUANT_GUARDRAIL | -2.60% | +0.70% | -3.30% | -0.012 | 0.018 | -0.030 | -13.79% | -14.95% | +1.16% | 289 |
-| F5_REGIME_FACTOR_WEIGHTS | -5.89% | +0.70% | -6.60% | -0.067 | 0.018 | -0.085 | -13.34% | -14.95% | +1.62% | 301 |
+| F5 baseline | +3.83% | +0.7348% | +3.10% | 0.045 | 0.018 | +0.027 | -12.41% | -14.95% | +2.54% | 363 |
+| F5_LH_WEEKLY_10D | +0.12% | +0.7348% | -0.61% | 0.009 | 0.018 | -0.009 | -8.22% | -14.95% | +6.73% | 133 |
+| F5_LH_BIWEEKLY_20D | -0.26% | +0.7348% | -0.99% | 0.007 | 0.018 | -0.011 | -12.52% | -14.95% | +2.43% | 50 |
+| F5_LH_MONTHLY_20D | -2.61% | +0.7348% | -3.34% | -0.026 | 0.018 | -0.044 | -8.83% | -14.95% | +6.13% | 48 |
+| F5_COOLDOWN_5D | **+3.99%** | +0.7348% | **+3.26%** | **0.043** | 0.018 | **+0.025** | **-9.16%** | -14.95% | **+5.79%** | 261 |
+| F5_COOLDOWN_10D | +0.57% | +0.7348% | -0.16% | 0.016 | 0.018 | -0.002 | -11.81% | -14.95% | +3.14% | 240 |
+| F5_QUANT_GUARDRAIL | -2.60% | +0.7348% | -3.33% | -0.012 | 0.018 | -0.030 | -13.79% | -14.95% | +1.16% | 289 |
+| F5_REGIME_FACTOR_WEIGHTS | -5.89% | +0.7348% | -6.62% | -0.067 | 0.018 | -0.085 | -13.34% | -14.95% | +1.62% | 301 |
 
 按课题文档口径，结论比 SPY 口径更清楚：
 
-1. F5 baseline 已经显著优于 20 股 Buy & Hold：收益超额 +3.13%，Sortino 提高 +0.027，最大回撤改善 2.54 个百分点。
-2. F5_COOLDOWN_5D 是当前最优版本：收益超额 +3.29%，Sortino 仍显著高于 Buy & Hold，最大回撤改善 5.79 个百分点，同时交易数从 F5 的 363 降到 261。
+1. F5 baseline 已经显著优于 20 股 Buy & Hold：收益超额 +3.10%，Sortino 提高 +0.027，最大回撤改善 2.54 个百分点。
+2. F5_COOLDOWN_5D 是当前最优版本：收益超额 +3.26%，Sortino 仍显著高于 Buy & Hold，最大回撤改善 5.79 个百分点，同时交易数从 F5 的 363 降到 261。
 3. Longer Horizon 虽然改善最大回撤，但收益和 Sortino 多数低于 Buy & Hold，不满足主指标改善要求。
 4. Quant Guardrail 和 Regime Factor Weights 均低于 Buy & Hold，说明当前量化因子使用方式不仅没有贡献增量，反而损害了主指标。
 
@@ -463,7 +463,7 @@ sell 后 5 天内默认不能 rebuy
 按照课题文档要求，所有实验统一和同一股票池的 Buy & Hold baseline 比较。这里使用 20 支股票等金额买入持有组合：
 
 ```text
-20-stock equal-weight Buy & Hold return: +0.70%
+20-stock equal-weight Buy & Hold return: +0.7348%
 20-stock equal-weight Buy & Hold Sortino: 0.018
 20-stock equal-weight Buy & Hold Max Drawdown: -14.95%
 ```
@@ -1052,7 +1052,7 @@ F6 = F5_COOLDOWN_5D
 
 | 对照组 | Total Return | Sortino | Sharpe | Max Drawdown | Trades | Trades Notional |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 20-stock equal-weight Buy & Hold | +0.7046% | 0.017979 | - | -14.9520% | - | - |
+| 20-stock equal-weight Buy & Hold | +0.7348% | 0.017979 | - | -14.9520% | - | - |
 | F6 baseline | +3.9913% | 0.043074 | 0.556719 | -9.1603% | 261 | 418155.76 |
 
 F6 相比 20 股等权买入持有：
@@ -1262,7 +1262,7 @@ F6 = cleaned fundamental signal
 
 ### 12.3 F7 完整结果
 
-下表按课题文档口径，主比较对象为 F6，辅助比较对象为 20 股等权 Buy & Hold。Buy & Hold 口径沿用前文统一 benchmark：Total Return +0.7046%，Sortino 0.017978，Max Drawdown -14.9519%。
+下表按课题文档口径，主比较对象为 F6，辅助比较对象为 20 股等权 Buy & Hold。Buy & Hold 口径沿用前文统一 benchmark：Total Return +0.7348%，Sortino 0.017978，Max Drawdown -14.9519%。
 
 | 实验 | Total Return | vs F6 Return | Excess vs B&H | Sortino | vs F6 Sortino | Sortino Delta vs B&H | Sharpe | Max Drawdown | MDD Improvement vs B&H | Trades | Trades Notional | Avg Cash Ratio |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -1894,7 +1894,7 @@ F6 Sharpe = 0.556719
 F6 Max Drawdown = -9.1603%
 F6 Trades = 261
 
-20-stock equal-weight Buy & Hold Return = +2.5638%
+20-stock equal-weight Buy & Hold Return = +0.7348%
 ```
 
 | 实验 | 主要改动 | Total Return | vs F6 | vs B&H | Sortino | Sharpe | Max Drawdown | Trades | Trades Notional | 结论 |
@@ -2452,15 +2452,17 @@ F9 的整体结论是：
 低权限 buy/add sizing 有一定价值；
 sell confirmation 不能泛化；
 quality-trap add check 容易压制收益；
-下一阶段应继续围绕 F5_COOLDOWN_5D 和 F8C_REBOUND_CATCHUP_TAG 做组合，而不是以 F9B/F9C 为主线。
+下一阶段应继续围绕 F5_COOLDOWN_5D 做低权限模块验证，而不是以 F9B/F9C 为主线。
 ```
 
-建议下一阶段优先级：
+对最终版 F10 的启发是：
 
 ```text
-1. F10A = F5_COOLDOWN_5D + rebound_catchup_tag
-2. F10B = F10A + narrow buy/add reduce-only sizing, borrowing only the useful part of F9A
-3. F10C = F10A + winner_hold soft tag, but not F9B-style generic sell confirmation
+1. rebound 方向不能直接沿用 F8C，需要先离线诊断 tag 是否真的能识别 BA/HON/IBM/MSFT/GS 等 winner。
+2. F9A 的 buy/add reduce-only 思路可以复用，但权限必须更窄，只做轻微 sizing haircut。
+3. winner_hold 只能做 soft positive tag，不能复用 F9B 式 generic sell second confirmation。
+4. quality-trap / defensive lagging 方向只能降低新增或加仓优先级，不能 hard block。
+5. risk budget 只能在极端风险时压仓，不能重新引入 regime factor weights。
 ```
 
 暂不建议：
@@ -2474,31 +2476,62 @@ any module that broadly reduces all sell/add actions
 
 F9 的研究价值主要在于排除了两个看似合理但实证不佳的方向：generic sell confirmation 和 quality-trap hard add check。真正可复用的是 F9A 的低权限 buy/add sizing 思路。
 
-## 17. F10 下一阶段实验计划：基于分层优化的组合验证
+## 17. 最终版 F10 七组实验计划
 
-F10 不再继续扩展 generic reflection、hard quant veto 或复杂 thesis memory，而是基于已经被实验验证过的低权限模块，做更干净的组合验证。
+F10 不再继续扩展 generic reflection、hard quant veto、复杂 thesis memory 或 full soft optimizer，而是围绕当前最强基线做去重后的七组低权限实验。
+
+原本 F10 三组和新七组存在明显重叠，不能简单相加成十组。最终版 F10 统一整理为七组。F10A 诊断完成后，rebound 方向的定位需要降权：修正后的 tag 能识别真实 winner，但暂未证明它是稳定正 alpha，因此后续 rebound 模块只能先作为 context / exposure diagnostic，不能直接升级为 sizing boost 或强持有约束。
+
+当前代码结构说明：
+
+```text
+run_backtest.py 目前直接支持 cooldown_days、reflection_agent、fundamental_features、data_mode 等运行时开关；
+reflection_agent 是已有 pre-decision advisory layer，但 F10 不建议继续走 generic reflection；
+rebound_candidate、winner_hold、defensive_lagging、nt_band_lite、extreme_risk_budget 目前不是稳定的一等配置项；
+这些模块应通过独立实验分支中的特征构造、prompt context、order overlay 或风险参数实现，并在 attribution 脚本中补充计数。
+```
 
 核心原则：
 
 ```text
-base 不从 F6 出发，而从 F5_COOLDOWN_5D 出发；
-保留 FUND1 cleaned fundamental 和 5d reversal cooldown；
-优先组合 F8C 的 rebound_catchup_tag；
-只借用 F9A 的低权限 buy/add sizing 思路；
-不复用 F9B 的 generic sell confirmation；
-不复用 F9C 的 hard quality-trap add block；
+统一命名为 F10，不再新增 F11；
+所有完整 LLM backtest 一律从 F10_BASE = F6 / F5_COOLDOWN_5D 口径出发；
+F10_BASE = FUND1 cleaned fundamental + anti-overtrade memory + 5d cooldown；
+F10A 是门控诊断，用来区分“tag 能否识别 winner”和“tag 是否有未来收益预测力”；
+F10C 是结果归因 audit，用来解释 F6/F10B/F10E/F10F/F10G 的 winner exposure 路径；
+rebound tag 只能先作为 context，不直接做正向 sizing boost；
+只借用 F9A 的低权限 buy/add sizing 思路，但不再把它绑定到 rebound tag；
+soft execution 四组只保留 very-lite no-trade band 候选，不重复 reduce-only、priority-turnover 或 full optimizer；
 所有新增模块必须可归因、可计数、可单独 ablation。
 ```
 
+重叠关系整理：
+
+| 原本 F10 三组 | 和最终七组的关系 | 处理 |
+| --- | --- | --- |
+| F10A = cooldown + rebound_catchup_tag | 与最终 F10A/F10B 重叠 | 保留方向，但拆成“先诊断 rebound 是否识别 winner”，再跑主实验 |
+| F10B = F10A + buy/add sizing | 与旧 F10C 重叠 | 暂不保留 rebound sizing；改成 F10C exposure audit，避免把未证实 alpha 接入执行层 |
+| F10C = F10A + winner_hold soft tag | 与最终 F10D 重叠 | 保留 winner_hold 方向，但改成 confirmed winner hold，rebound 只做辅助证据 |
+
 ### 17.1 F10 的 base 选择
 
-F10 的建议底座为：
+F10 的统一底座为：
 
 ```text
-F10_BASE = F5_COOLDOWN_5D
+F10_BASE = F6 = F5_COOLDOWN_5D
          = FUND1 cleaned fundamental
          + anti-overtrade memory
-         + 5d reversal cooldown
+         + 5d cooldown
+```
+
+执行规则：
+
+```text
+F10B/F10D/F10E/F10F/F10G 都必须是 F6 + 单一低权限模块；
+F10A 不跑 LLM backtest，但诊断使用同一股票池、同一区间和同一价格数据口径；
+F10C 不跑 LLM backtest，只审计 F6 与 F10 各单模块结果；
+不得以 F8C、F9A、F10 soft execution full 作为新的 base；
+任何 F10 组合版必须等单模块结果完成后另行命名，不纳入当前七组。
 ```
 
 选择该底座的原因：
@@ -2514,30 +2547,236 @@ F10_BASE = F5_COOLDOWN_5D
 
 ```text
 在 F5_COOLDOWN_5D 已经降低低质量反向交易后，
-rebound tag、winner-hold soft tag、buy/add sizing 是否还能继续提升 winner exposure 和风险调整收益。
+rebound/relative strength context、confirmed winner-hold soft tag、defensive lagging、very-lite no-trade band、
+extreme risk budget 是否还能继续提升 winner exposure、降低无效交易或改善回撤。
 ```
 
 ### 17.2 F10 实验矩阵
 
-建议下一阶段先跑 3 个核心组合，不要一次性开太多发散分支。
+最终版 F10 保留七组，按单模块或诊断逐一验证，不做 full low-permission 大组合。
 
-| 实验 | 组成 | 主要改进层 | 目标 |
-| --- | --- | --- | --- |
-| F10A_COOLDOWN_REBOUND | F5_COOLDOWN_5D + rebound_catchup_tag | 数据/特征层、选股层、买入候选排序层 | 提升 MSFT/BA/IBM/GS/HON 等 winner exposure |
-| F10B_REBOUND_BUY_ADD_SIZING | F10A + narrow buy/add reduce-only sizing | 买入候选排序层、执行层、风险预算层 | 在不 hard veto 的情况下降低低质量加仓和回撤 |
-| F10C_REBOUND_WINNER_HOLD_SOFT | F10A + winner_hold soft tag | 持仓管理层、卖出审查层 | 减少卖飞强势持仓，但避免 F9B 式泛化 sell confirmation |
+| 编号 | 实验名 | Base / 对照 | 改哪一层 | 做什么 | 权限边界 | 目的 |
+| --- | --- | --- | --- | --- | --- | --- |
+| F10A | REBOUND_DIAGNOSTIC_TAG | F6 数据口径；不跑 LLM | 特征层 / 选股层 | 修正 rebound 定义，离线检查 BA、HON、IBM、MSFT、GS 这类真实 winner 是否能被标出来，并比较 tagged / untagged future return | 只诊断，不改 prompt，不改订单 | 解决 F8C tag 没触发、归因不成立的问题，同时判断 tag 是否只是解释性 context |
+| F10B | REBOUND_CONTEXT_MAIN | F6 + context-only tag | 特征层 / 买入候选排序层 | 把修正后的 rebound / relative strength tag 放进 LLM prompt，只给信息，不加执行约束 | 不做 sizing boost，不 hard veto，不要求买入 rebound 股票 | 验证 rebound context 是否帮助 LLM 少错过 BA/MSFT/IBM/GS/HON；不能把收益改善强归因于 rebound alpha |
+| F10C | REBOUND_TARGET_EXPOSURE_AUDIT | 审计 F6/F10B/F10E/F10F/F10G | 归因/诊断层 | 对 BA、HON、IBM、MSFT、GS 每日 exposure、tagged-but-missed 日期、sell 后 5d/10d 表现做审计 | 不跑 LLM，不改策略，不生成新收益曲线 | 区分“没看到 winner”“看到但没买”“买了但太早卖”，暂不做 sizing 实验 |
+| F10D | CONFIRMED_WINNER_HOLD_SOFT | F6 + confirmed winner hold | 持仓管理层 | 只对已持仓且实际表现强、基本面未恶化、无明确负面 news 的 confirmed winner 给 soft hold tag；rebound 只做辅助证据 | 只影响低置信 sell；允许 thesis invalidated / risk-reducing sell | 测试能否减少卖飞 BA/MSFT/IBM 这类 winner，避免 F9B 式泛化 sell confirmation |
+| F10E | DEFENSIVE_LAGGING_NO_ADD | F6 + defensive lagging tag | 选股层 / 仓位管理层 | 对反弹期明显落后的防御股加 soft negative tag，只降低新增/加仓优先级 | 只处理 buy/add；不强制卖出；高置信例外允许通过 | 减少资金卡在低弹性标的里 |
+| F10F | NT_BAND_LITE_ON_F6 | F6 + very-lite no-trade band | 执行层 | 只保留很轻的 no-trade band，过滤极小额噪声交易，不做 full optimizer | 只 skip/partial 极小交易；不启用 reduce-only、priority-turnover、full optimizer | 复用 F10 soft execution 里唯一相对有价值的部分 |
+| F10G | EXTREME_RISK_BUDGET | F6 + extreme-only risk budget | 风险预算层 | 只在极端组合风险、连续亏损或高集中度时轻微压仓，不做 regime factor 权重 | normal/recovery 基本放行；risk 只控仓位，不改 alpha ranking | 看能否改善 MDD，同时不伤 5-6 月反弹 |
 
-可选的最终组合：
+F10A 是门控诊断，不应和 F10B-G 同等解释为收益实验。F10A 当前结果显示：修正后的 rebound tag 能识别 BA、HON、IBM、MSFT、GS，但 tagged 样本未来 5d/10d 平均收益暂时低于 untagged 样本。因此，rebound 方向可以继续作为 context / exposure audit，但不应直接作为买入加权、sizing boost 或强 hold 依据。
+
+### 17.2.1 F10 单组实验内容
+
+#### F10A_REBOUND_DIAGNOSTIC_TAG
 
 ```text
-F10D_FULL_LOW_PERMISSION =
-  F5_COOLDOWN_5D
-  + rebound_catchup_tag
-  + narrow buy/add reduce-only sizing
-  + winner_hold soft tag
+类型：离线诊断，不跑 LLM
+对照：F8C old rebound tag vs revised rebound tag
+输入：F6 同股票池、同价格数据、2025-03-03 至 2025-06-30
+输出：
+  old/revised tag count
+  BA/HON/IBM/MSFT/GS tag days
+  tagged vs untagged future_return_5d/10d
+  missed winner days
+结论用途：
+  决定 rebound 是否能进入 F10B prompt
+  决定 rebound 是否能作为 execution/sizing 依据
 ```
 
-F10D 只应在 F10A/F10B/F10C 至少有两个方向为正时运行。否则容易再次出现 F6/F9 式的模块叠加过度约束。
+#### F10B_REBOUND_CONTEXT_MAIN
+
+```text
+类型：完整 LLM backtest
+base：F6
+唯一新增：
+  revised_rebound_tag
+  relative_strength_tag
+  prompt 中的 context-only explanation
+禁止：
+  不改变 order size
+  不新增 post-decision reviewer
+  不对 tagged 股票强制买入、加仓或持有
+必须统计：
+  target winner avg exposure
+  tagged target bought count
+  tagged target missed count
+  BA/HON/IBM/MSFT/GS monthly exposure
+  return/MDD/Sortino/trades vs F6
+成功条件：
+  target winner exposure 明显高于 F6，且收益或回撤不明显恶化。
+```
+
+#### F10C_REBOUND_TARGET_EXPOSURE_AUDIT
+
+```text
+类型：归因诊断，不跑 LLM
+审计对象：
+  F6
+  F10B
+  F10E
+  F10F
+  F10G
+核心问题：
+  tagged winner 当天是否进入候选/持仓
+  LLM 是否看到了 tag 但没有买
+  买入后是否太早卖出
+  sell 后 5d/10d 是否继续上涨
+  cash 是否闲置但 target winner 被 tagged
+输出：
+  target exposure by day
+  tagged-but-missed table
+  sell-too-early table
+  target contribution attribution
+结论用途：
+  若主要问题是没买，后续才讨论低质量 buy/add haircut；
+  若主要问题是太早卖，才运行 F10D。
+```
+
+#### F10D_CONFIRMED_WINNER_HOLD_SOFT
+
+```text
+类型：完整 LLM backtest，但必须等 F10C 后运行
+base：F6
+唯一新增：
+  confirmed_winner_hold_soft_tag
+触发条件：
+  existing position
+  positive unrealized PnL 或 20d/60d relative strength strong
+  fundamental_signal not negative
+  no clear negative news
+  position not over risk cap
+  rebound tag 只能作为辅助证据
+允许：
+  low-confidence full sell -> partial sell / hold caution
+  low-confidence partial sell -> smaller trim / hold caution
+  thesis invalidated -> allow sell
+  risk-reducing sell -> allow sell
+禁止：
+  不做 generic sell second confirmation
+  不保护亏损弱势股
+  不永久禁止卖出
+必须统计：
+  protected sell count
+  protected sell future_return_5d/10d
+  false-protected loser count
+  target winner holding days vs F6
+```
+
+#### F10E_DEFENSIVE_LAGGING_NO_ADD
+
+```text
+类型：完整 LLM backtest
+base：F6
+唯一新增：
+  defensive_lagging_signal
+  buy/add soft negative priority
+触发倾向：
+  market 20d proxy positive
+  symbol 20d return rank low
+  symbol 20d return <= 0 或明显弱于 universe
+权限：
+  new buy can be skipped when confidence is not high
+  existing add can be reduced
+  sell is untouched
+  high-confidence exception allowed
+必须统计：
+  defensive_lagging_count
+  skipped_new_buy_count
+  reduced_add_count
+  affected order future_return_5d/10d
+  defensive exposure vs F6
+```
+
+#### F10F_NT_BAND_LITE_ON_F6
+
+```text
+类型：完整 LLM backtest
+base：F6
+唯一新增：
+  very-lite no-trade band
+权限：
+  skip extremely small notional trades
+  partial very small-to-medium rebalances
+禁止：
+  no reduce-only optimizer
+  no priority-turnover optimizer
+  no full soft execution optimizer
+必须统计：
+  nt_skip_count
+  nt_partial_count
+  output_orders
+  final trades
+  trades_notional
+  return/MDD/Sortino vs F6
+成功条件：
+  降低噪声交易或 notional，同时不弱于 F6 太多。
+```
+
+#### F10G_EXTREME_RISK_BUDGET
+
+```text
+类型：完整 LLM backtest
+base：F6
+唯一新增：
+  extreme-only risk budget
+触发条件：
+  portfolio drawdown / consecutive loss / concentration risk 达到 extreme threshold
+权限：
+  extreme risk-off mild gross exposure cap
+  extreme risk-off mild single-name cap
+  normal/recovery 不改变 alpha ranking
+禁止：
+  不做 regime factor weights
+  不用 volatility 惩罚 alpha
+  不阻止 confirmed winner / rebound candidate 的合理资金部署
+必须统计：
+  risk_budget_intervention_count
+  days_in_extreme_state
+  exposure cap vs actual exposure
+  MDD improvement
+  May-June rebound participation
+```
+
+### 17.2.2 F10A 离线诊断结果
+
+F10A 已完成离线诊断，时间区间为 `2025-03-03` 至 `2025-06-30`，股票池为 20-stock universe，target winner 为 `BA/HON/IBM/MSFT/GS`。
+
+总体结果：
+
+| 指标 | 结果 |
+| --- | ---: |
+| Diagnostic rows | 1440 |
+| Universe symbols | 20 |
+| Old F8C tag count | 79 |
+| Revised tag count | 304 |
+
+目标 winner 命中：
+
+| Symbol | Old tag days | Revised tag days | Period return |
+| --- | ---: | ---: | ---: |
+| BA | 1 | 15 | +29.68% |
+| HON | 0 | 11 | +11.03% |
+| IBM | 0 | 9 | +19.37% |
+| MSFT | 5 | 10 | +29.70% |
+| GS | 15 | 28 | +28.27% |
+
+Tagged / untagged future return 对比：
+
+| Tag version | Tagged 5d mean | Untagged 5d mean | Tagged 10d mean | Untagged 10d mean |
+| --- | ---: | ---: | ---: | ---: |
+| old_f8c_rebound_tag | +0.70% | +0.47% | +1.07% | +0.85% |
+| revised_rebound_tag | +0.37% | +0.51% | +0.58% | +0.93% |
+
+阶段性解释：
+
+```text
+1. revised_rebound_tag 解决了 F8C 的“tag 可能不触发 / 识别不到真实 winner”问题。
+2. revised_rebound_tag 尚未证明是稳定正 alpha；全样本 tagged future return 低于 untagged。
+3. rebound tag 可以继续进入 F10B prompt 作为 context，但不能作为 F10C 式执行层正向加权依据。
+4. winner_hold 不能只依赖 rebound tag，必须改成 confirmed winner hold。
+```
 
 ### 17.3 分层优化设计
 
@@ -2562,6 +2801,16 @@ defensive_lagging_tag
 | relative_strength_tag | 20d/60d 相对强弱排名 | 买入排序和持仓保护 | soft ranking hint |
 | winner_hold_tag | 已持仓且趋势/基本面未破坏的强势股 | 防止低置信卖飞 | sell caution only |
 | defensive_lagging_tag | 低波动但明显跑输反弹行情的防御股 | 降低新增买入优先级 | soft negative tag |
+
+F10A 的 rebound diagnostic 已离线输出：
+
+```text
+rebound_candidate_count
+rebound_candidate_symbols_by_day
+BA/HON/IBM/MSFT/GS tag days
+tagged vs untagged future_return_5d/10d
+missed_winner_days
+```
 
 禁止事项：
 
@@ -2637,6 +2886,21 @@ negative:
 不允许替代 decision_agent 的原始判断。
 ```
 
+Sizing 暂缓与后续恢复条件：
+
+```text
+原 F10C_REBOUND_BUY_ADD_SIZING 暂缓；
+不基于 revised_rebound_tag 做正向加权或 sizing boost；
+如后续恢复 sizing，只能改成 LOW_QUALITY_BUY_ADD_HAIRCUT：
+  只处理 buy/add；
+  只允许 reduce_size，不允许 reject；
+  默认 haircut 20%-30%，极端低质量最多 50%；
+  不审 sell；
+  不对所有高波动股票降 size，rebound evidence 只能作为不惩罚的辅助理由。
+```
+
+当前 F10C 改为 `REBOUND_TARGET_EXPOSURE_AUDIT`，不发起 LLM backtest，不改订单。
+
 #### 17.3.4 决策架构层
 
 目标：不回到 generic reflection，而是把审查放到具体订单之后。
@@ -2699,21 +2963,33 @@ hard reject except position/data/cooldown violation
 
 F10 的执行层重点不是继续降交易数，而是减少低质量反向交易，同时保留反弹行情里的快速纠错能力。
 
+F10F 只允许 very-lite no-trade band：
+
+```text
+过滤极小额噪声交易；
+允许小到中等偏离做 partial rebalance；
+不启用 reduce-only sizing；
+不启用 priority-turnover；
+不启用 full soft optimizer。
+```
+
+依据 `F10_soft_execution_experiment_plan.md` 的已完成结果，`F10_EXEC_NT_BAND_ONLY` 是 soft execution 四组里唯一相对有记录价值的版本，但仍弱于 F6；因此 F10F 只能作为轻量候选，不应升级为主线执行框架。
+
 #### 17.3.6 持仓管理层
 
 目标：减少卖飞 winner，但不重复 F9B 的失败。
 
-建议只做 `winner_hold_soft_tag`：
+建议只做 `confirmed_winner_hold_soft_tag`：
 
 触发条件必须较窄：
 
 ```text
 current position exists
-relative_strength_tag = strong
-rebound_participation_tag = strong
+positive unrealized PnL or relative_strength_tag = strong
 fundamental_signal not deteriorated
 no clear negative news
 position not over risk cap
+rebound_participation_tag can support but cannot trigger alone
 ```
 
 允许动作：
@@ -2761,6 +3037,15 @@ volatility directly penalizes alpha
 
 F4/F5_REGIME_FACTOR_WEIGHTS 的失败说明，regime 作为因子权重层容易错过反弹。F10 中 regime 只能做 risk budget。
 
+F10G 的 extreme risk budget 触发必须很窄：
+
+```text
+portfolio drawdown or consecutive loss exceeds threshold;
+single-name concentration exceeds cap;
+cash deployment remains allowed for confirmed rebound/winner candidates;
+only mild size cap or add restriction, not broad risk-off de-risking.
+```
+
 #### 17.3.8 归因/评估层
 
 F10 必须在报告中回答模块是否真的有贡献，不能只看最终收益。
@@ -2801,10 +3086,24 @@ winner_hold 保护的 sell 后续确实上涨；
 建议按以下顺序运行：
 
 ```text
-1. F10A_COOLDOWN_REBOUND
-2. F10B_REBOUND_BUY_ADD_SIZING
-3. F10C_REBOUND_WINNER_HOLD_SOFT
-4. F10D_FULL_LOW_PERMISSION, only if at least two of F10A/F10B/F10C are positive
+1. F10A_REBOUND_DIAGNOSTIC_TAG
+2. F10E_DEFENSIVE_LAGGING_NO_ADD
+3. F10F_NT_BAND_LITE_ON_F6
+4. F10G_EXTREME_RISK_BUDGET
+5. F10B_REBOUND_CONTEXT_MAIN
+6. F10C_REBOUND_TARGET_EXPOSURE_AUDIT
+7. F10D_CONFIRMED_WINNER_HOLD_SOFT
+```
+
+运行策略：
+
+```text
+F10A 已完成离线诊断，不需要完整 LLM backtest；
+第一批完整 backtest 先跑 F10E/F10F/F10G，因为它们与 rebound alpha 弱相关；
+F10B 可以后续运行，但只做 context，不加执行约束；
+F10C 是 exposure audit，依赖 F6/F10B/F10E/F10F/F10G 的结果，不单独跑 LLM；
+F10D 必须等 F10C 确认“卖飞 winner”确实存在后再跑；
+暂不设计 F10H/F11 full combo，避免把多个弱正贡献模块叠加成过度约束。
 ```
 
 如果 API 成本允许，最终候选应补充稳健性区间：
@@ -2826,25 +3125,354 @@ subperiod:
 F10 最终报告应明确回答：
 
 ```text
-rebound_catchup_tag 是否提高 winner exposure；
-buy/add sizing 是否只是降低交易，还是确实减少低质量加仓；
-winner_hold_soft_tag 是否减少卖飞，而不是重复 F9B 的该卖不卖；
-组合后收益改善来自买入更好、持有更久、还是回撤下降；
-F10 是否优于 F5_COOLDOWN_5D，而不只是优于 FUND1 或 B0。
+F10A 是否证明 rebound tag 能识别真实 winner，以及是否具备 future-return alpha；
+F10B 是否在不加执行约束的情况下提高 target winner exposure；
+F10C 是否证明问题来自没看到 winner、看到但没买、买了但太早卖；
+F10D 的 confirmed_winner_hold_soft_tag 是否减少卖飞，而不是重复 F9B 的该卖不卖；
+F10E 是否减少低弹性 defensive lagging exposure，且不误伤反弹参与；
+F10F 的 very-lite no-trade band 是否能过滤噪声交易，且不重复 full optimizer 的过度干预；
+F10G 是否改善 MDD，同时不伤 5-6 月 rebound participation；
+最终 F10 是否优于 F5_COOLDOWN_5D / F6 口径，而不只是优于 FUND1 或 B0。
 ```
 
 阶段性判断标准：
 
 ```text
-若 F10A 优于 F5_COOLDOWN_5D：
-  rebound tag 成为下一阶段主线。
+若 F10A 能识别 BA/HON/IBM/MSFT/GS 但 tagged future return 不优：
+  rebound 只能作为 context / audit，不能作为 sizing boost。
 
-若 F10B 优于 F10A：
-  F9A 的 low-permission buy/add sizing 可复用。
+若 F10B 提高 target winner exposure：
+  rebound context 可继续保留，但仍需通过 F10C 确认是否改善交易路径。
 
-若 F10C 明显弱于 F10A：
+若 F10C 发现主要问题是 tagged winner 未买入：
+  后续再考虑 LOW_QUALITY_BUY_ADD_HAIRCUT，而不是 rebound buy/add boost。
+
+若 F10C 发现主要问题是买入后太早卖：
+  再运行 F10D_CONFIRMED_WINNER_HOLD_SOFT。
+
+若 F10D 明显弱于 F10B 或 F6：
   winner_hold 仍需更窄触发，不能做 sell gate。
 
-若 F10D 弱于 F10A：
-  模块组合过度约束，应回退到单模块正贡献版本。
+若 F10E/F10F/F10G 弱于 F6：
+  只保留为诊断，不进入最终主线。
+```
+### 17.6 F10 已完成实验结果与分析
+
+本节记录最终版 F10 的已完成结果。所有收益型 backtest 统一使用以下口径：
+
+```text
+period = 2025-03-03 to 2025-06-30
+benchmark = 20-stock equal-weight Buy & Hold
+BH20 return = +0.7348%
+BH20 max drawdown = -14.9520%
+base = F6 = F5_COOLDOWN_5D
+     = FUND1 cleaned fundamental
+     + anti-overtrade memory
+     + 5D cooldown
+```
+
+#### 17.6.1 F10 汇总结果
+
+| Run | Strategy Return | BH20 Return | Excess vs BH20 | Strategy MDD | BH20 MDD | Sharpe | IR vs SPY | Trades | 判断 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| F6 baseline | +3.99% | +0.73% | +3.26% | -9.16% | -14.95% | 0.557 | -0.332 | 261 | 当前最强基线 |
+| F10B_REBOUND_CONTEXT_MAIN_V2 | +2.07% | +0.73% | +1.33% | -12.98% | -14.95% | 0.361 | -0.423 | 122 | 信息有效但不够强 |
+| F10D_CONFIRMED_WINNER_HOLD_SOFT_V2 | +1.00% | +0.73% | +0.27% | -13.32% | -14.95% | 0.245 | -0.414 | 162 | 不建议保留为主线 |
+| F10E_DEFENSIVE_LAGGING_NO_ADD_V2 | +3.68% | +0.73% | +2.94% | -11.11% | -14.95% | 0.496 | -0.371 | 268 | 最接近 F6，但仍弱于 F6 |
+| F10F_NT_BAND_LITE_ON_F6 old | +4.17% | +0.73% | +3.41% | -11.19% | -14.95% | 0.578 | -0.315 | 251 | 收益略高但回撤恶化 |
+| F10F_PLUS_SMART_NT_BAND | +0.59% | +0.73% | -0.15% | -13.60% | -14.95% | 0.211 | -0.477 | 62 | 失败，过度过滤交易 |
+| F10G_EXTREME_RISK_BUDGET old | +0.96% | +0.73% | +0.22% | -10.84% | -14.95% | 0.236 | -0.526 | 164 | 风险预算压制收益 |
+
+结论：
+
+```text
+F10 没有产生稳定超过 F6 的新主线。
+F6 仍然是最终主基线。
+F10E 是最接近 F6 的候选，但还没有超过 F6。
+F10F old 收益略高于 F6，但最大回撤明显更差，不能视为全面胜出。
+F10Fplus、F10D、F10G 不建议进入最终策略。
+F10B 只能保留为 context / attribution 方向，不能升级为执行层约束。
+```
+
+#### 17.6.2 F10A 诊断结论
+
+F10A 是离线诊断，不是收益实验。它的核心任务是确认 revised rebound tag 是否真的能识别真实 winner，以及这个 tag 是否具备 future-return alpha。
+
+| 指标 | 结果 |
+| --- | ---: |
+| Diagnostic rows | 1440 |
+| Universe symbols | 20 |
+| Old F8C tag count | 79 |
+| Revised tag count | 304 |
+
+目标 winner 命中：
+
+| Symbol | Old tag days | Revised tag days | Period return |
+| --- | ---: | ---: | ---: |
+| BA | 1 | 15 | +29.68% |
+| HON | 0 | 11 | +11.03% |
+| IBM | 0 | 9 | +19.37% |
+| MSFT | 5 | 10 | +29.70% |
+| GS | 15 | 28 | +28.27% |
+
+Tagged / untagged future return：
+
+| Tag version | Tagged 5d mean | Untagged 5d mean | Tagged 10d mean | Untagged 10d mean |
+| --- | ---: | ---: | ---: | ---: |
+| old_f8c_rebound_tag | +0.70% | +0.47% | +1.07% | +0.85% |
+| revised_rebound_tag | +0.37% | +0.51% | +0.58% | +0.93% |
+
+解释：
+
+```text
+revised tag 解决了旧 F8C tag 识别不到 BA/HON/IBM/MSFT/GS 的问题；
+但 revised tagged 样本的未来 5d/10d 平均收益低于 untagged；
+因此 rebound tag 有解释价值，但不是稳定 alpha；
+后续只能作为 prompt context 或 exposure audit，不能作为 sizing boost 或强持有约束。
+```
+
+#### 17.6.3 F10B_v2：rebound context
+
+F10B_v2 将 revised rebound / relative strength tag 放进 LLM prompt，只给信息，不加执行约束。
+
+机制触发：
+
+```text
+REBOUND_TAG lines = 85
+nonzero days = 79
+sum rebound_candidate_count = 320
+max daily rebound_candidate_count = 11
+```
+
+结果：
+
+```text
+return = +2.07%
+excess vs BH20 = +1.33%
+MDD = -12.98%
+Sharpe = 0.361
+trades = 122
+```
+
+分析：
+
+```text
+F10B_v2 这次代码接入是有效的，tag 确实进入了运行链路；
+但收益、MDD、Sharpe 都弱于 F6；
+核心原因是 F10A 已经证明 rebound tag 不是稳定 future-return alpha；
+LLM 看到更多 rebound context 后变得更谨慎，交易数下降，但没有换来更好的风险收益。
+```
+
+结论：F10B 可保留为 context / audit 方向，但不能进入最终主线。
+
+#### 17.6.4 F10C：target exposure audit
+
+F10C 是归因审计，不跑独立 LLM 收益曲线。它用于解释 F6/F10B/F10E/F10F/F10G 对 BA/HON/IBM/MSFT/GS 的 exposure。
+
+既有 audit 结果：
+
+| Run | Avg target exposure | Target days | Missed target days | Target sells |
+| --- | ---: | ---: | ---: | ---: |
+| F10B old | 5.27% | 349 | 15 | 26 |
+| F10E old | 4.78% | 351 | 12 | 22 |
+| F10F old | 4.66% | 319 | 17 | 12 |
+| F10G old | 2.11% | 172 | 55 | 2 |
+| F6 | 3.85% | 223 | 34 | 12 |
+
+分析：
+
+```text
+F6 已经不是完全看不到 winner；
+F10B/F10E/F10F old 在 target exposure 上有局部改善；
+F10G 明显压低 target exposure，解释了收益被风险预算压制；
+后续若继续做 F10C，应基于 V2 结果重新跑一次 exposure audit。
+```
+
+#### 17.6.5 F10D_v2：confirmed winner hold
+
+F10D_v2 对强势持仓加 confirmed winner hold soft tag，目标是减少卖飞 winner，但不做 F9B 式 generic sell confirmation。
+
+机制触发：
+
+```text
+hold_tag_lines = 83
+nonzero days = 82
+sum confirmed_winner_hold_count = 771
+max daily confirmed_winner_hold_count = 14
+protected_sell_events_sum = 1
+```
+
+结果：
+
+```text
+return = +1.00%
+excess vs BH20 = +0.27%
+MDD = -13.32%
+Sharpe = 0.245
+trades = 162
+```
+
+分析：
+
+```text
+tag 很活跃，但真正保护 sell 只有 1 次；
+说明该模块在订单层影响很小；
+如果提高保护强度，又会接近 F9B 的失败模式，即该卖不卖；
+因此 winner_hold 方向在当前触发条件下没有形成有效收益贡献。
+```
+
+结论：F10D_v2 不建议保留为主线。
+
+#### 17.6.6 F10E_v2：defensive lagging no-add
+
+F10E_v2 对反弹期明显落后的防御股加 soft negative tag，只降低新增和加仓优先级。
+
+机制触发：
+
+```text
+defensive_tag_lines = 83
+nonzero days = 30
+sum defensive_lagging_count = 136
+max daily defensive_lagging_count = 7
+skipped_new_buy_sum = 0
+reduced_add_sum = 0
+```
+
+结果：
+
+```text
+return = +3.68%
+excess vs BH20 = +2.94%
+MDD = -11.11%
+Sharpe = 0.496
+trades = 268
+```
+
+分析：
+
+```text
+F10E_v2 是本轮最接近 F6 的实验；
+tag 已经触发，说明前一版“完全不触发”的接入问题已经修正；
+但 skipped_new_buy 和 reduced_add 都为 0，说明执行层没有真正改变订单；
+因此 F10E_v2 的结果不能证明 no-add overlay 已经有效，只能说明 defensive lagging 识别方向有一定研究价值。
+```
+
+结论：F10E 是唯一值得继续修正的候选。下一版应从 soft tag 改为更明确的 low-elasticity add haircut，但仍只处理 buy/add，不碰 sell。
+
+#### 17.6.7 F10F old 与 F10Fplus：no-trade band
+
+F10F old 是 very-lite no-trade band，F10Fplus 是更智能但更强的 smart no-trade band。
+
+F10F old：
+
+```text
+return = +4.17%
+excess vs BH20 = +3.41%
+MDD = -11.19%
+Sharpe = 0.578
+trades = 251
+```
+
+F10Fplus 机制触发：
+
+```text
+NT_BAND_PLUS lines = 13
+reviewed = 65
+output = 63
+skip = 2
+partial = 9
+approved = 54
+override = 24
+```
+
+F10Fplus 结果：
+
+```text
+return = +0.59%
+excess vs BH20 = -0.15%
+MDD = -13.60%
+Sharpe = 0.211
+trades = 62
+```
+
+分析：
+
+```text
+F10F old 的收益略高于 F6，但 MDD 从 -9.16% 恶化到 -11.19%；
+因此 F10F old 不是全面优于 F6，只是收益小幅提高、风险同步变差；
+F10Fplus 将 trades 压到 62，但收益也被压没；
+说明 smart no-trade band 过度过滤了有效纠错和反弹参与。
+```
+
+结论：F10F old 可作为轻量候选记录，但不能替代 F6；F10Fplus 判定失败。
+
+#### 17.6.8 F10G old：extreme risk budget
+
+F10G old 只在极端组合风险、连续亏损或高集中度时轻微压仓，目标是改善 MDD，同时不伤 5-6 月反弹。
+
+结果：
+
+```text
+return = +0.96%
+excess vs BH20 = +0.22%
+MDD = -10.84%
+Sharpe = 0.236
+trades = 164
+```
+
+分析：
+
+```text
+F10G 有一定风险控制效果，MDD 好于多数 F10 变体；
+但收益大幅低于 F6；
+原因是 2025-05 至 2025-06 存在明显反弹，风险预算过早压仓会错过 rebound participation；
+这与 F4/F5 regime factor weights 的失败逻辑一致：风险层一旦接管 alpha，容易压制反弹收益。
+```
+
+结论：F10G 不进入最终主线，只作为风险预算失败样本记录。
+
+#### 17.6.9 F10 总结论
+
+F10 的核心发现不是某个新模块战胜 F6，而是证明了 F6 已经是一个很强的低权限组合：
+
+```text
+F6 = cleaned fundamental signal
+   + anti-overtrade memory
+   + 5D cooldown
+```
+
+在 F6 上继续叠加模块，主要出现三类问题：
+
+```text
+1. 信息有解释价值，但预测力不足：
+   F10A/F10B 的 rebound tag 可以识别 winner，但不是稳定 future-return alpha。
+
+2. soft tag 太软，影响不了订单：
+   F10E_v2 tag 已触发，但 skip/add reduce 都为 0。
+
+3. 执行或风险约束太硬，会错过反弹：
+   F10Fplus 和 F10G 都降低了交易或风险暴露，但收益被明显压制。
+```
+
+最终保留判断：
+
+| 模块 | 是否进入最终主线 | 处理 |
+| --- | --- | --- |
+| F6 baseline | 是 | 继续作为主基线 |
+| F10A diagnostic | 是，作为诊断 | 证明 rebound 可解释但不能直接加权 |
+| F10B rebound context | 否 | 仅保留为 prompt context / attribution 备选 |
+| F10C exposure audit | 是，作为分析工具 | 后续用 V2 结果补跑 audit |
+| F10D winner hold | 否 | 不保留 |
+| F10E defensive lagging | 候选 | 下一轮改为更明确的 buy/add haircut |
+| F10F old NT band | 候选但不替代 F6 | 记录收益略高、回撤更差 |
+| F10Fplus smart band | 否 | 过度保守，失败 |
+| F10G risk budget | 否 | 风控压制收益 |
+
+最终结论：
+
+```text
+F10 没有产生超过 F6 的新主线。
+F6 继续作为最终主基线。
+下一轮若继续优化，应只围绕 F10E 的 low-elasticity buy/add haircut 做更窄权限实验；
+不要继续叠加 rebound sizing、generic winner hold、smart no-trade optimizer 或 regime/risk budget。
 ```

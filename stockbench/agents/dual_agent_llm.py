@@ -173,6 +173,79 @@ def _attach_quant_factor_features(features_list: List[Dict], cfg: Dict | None = 
     return features_list
 
 
+def _f11_module_cfg(cfg: Dict | None, name: str) -> Dict:
+    modules = (cfg or {}).get("f11_modules") or (cfg or {}).get("modules") or {}
+    return modules.get(name, {}) or {}
+
+
+def _attach_f11_fundamental_reliability(features_list: List[Dict], cfg: Dict | None = None) -> List[Dict]:
+    module_cfg = _f11_module_cfg(cfg, "I3_FUNDAMENTAL_RELIABILITY_TAG")
+    if not bool(module_cfg.get("enabled", False)):
+        return features_list
+
+    expected_fields = [
+        "market_cap",
+        "pe_ratio",
+        "dividend_yield",
+        "week_52_high",
+        "week_52_low",
+        "quarterly_dividend",
+    ]
+    high_missing = _safe_float(module_cfg.get("high_missing_threshold", 0.20), 0.20)
+    medium_missing = _safe_float(module_cfg.get("medium_missing_threshold", 0.40), 0.40)
+    counts = {"high": 0, "medium": 0, "low": 0, "unknown": 0}
+
+    for item in features_list:
+        symbol = item.get("symbol", "UNKNOWN")
+        features = item.get("features", {})
+        fundamental = features.get("fundamental_data") or {}
+        missing = 0
+        for field in expected_fields:
+            value = fundamental.get(field)
+            if value is None or value == "" or (isinstance(value, float) and not math.isfinite(value)):
+                missing += 1
+        missing_ratio = missing / len(expected_fields)
+
+        timestamp = (
+            fundamental.get("timestamp")
+            or fundamental.get("as_of_date")
+            or fundamental.get("filing_date")
+            or fundamental.get("period_of_report_date")
+        )
+        age_days = None
+        reliability = "unknown"
+        if timestamp:
+            try:
+                age_days = (datetime.now() - datetime.fromisoformat(str(timestamp)[:10])).days
+            except Exception:
+                age_days = None
+        if age_days is not None:
+            high_age = int(module_cfg.get("high_age_days", 90))
+            medium_age = int(module_cfg.get("medium_age_days", 180))
+            if age_days <= high_age and missing_ratio < high_missing:
+                reliability = "high"
+            elif age_days <= medium_age and missing_ratio < medium_missing:
+                reliability = "medium"
+            else:
+                reliability = "low"
+        elif fundamental and missing_ratio >= medium_missing:
+            reliability = "low"
+
+        counts[reliability] = counts.get(reliability, 0) + 1
+        features.setdefault("f11_context", {})["fundamental_reliability_context"] = {
+            "reliability": reliability,
+            "data_age_days": age_days,
+            "missing_ratio": missing_ratio,
+            "prompt_note": (
+                f"Fundamental data reliability for {symbol}: {reliability}. "
+                "Do not overweight stale or incomplete fundamentals."
+            ),
+        }
+
+    logger.info(f"[F11_I3_FUNDAMENTAL_RELIABILITY] counts={counts}, total_symbols={len(features_list)}")
+    return features_list
+
+
 def _filter_hallucination_decisions(decisions_data: dict, valid_symbols: set) -> dict:
     """
     Filter out hallucinated decisions, keeping only actual input stock symbols
@@ -411,6 +484,10 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
                 logger.info(f"🔄 [DUAL_AGENT] {symbol}: Using original features as fallback (may lack fundamental data)")
             
             # Add filter reasoning to the enhanced features
+            for preserved_key in ("f11_context", "f11_market_context"):
+                if preserved_key in features and preserved_key not in enhanced_features:
+                    enhanced_features[preserved_key] = features[preserved_key]
+
             enhanced_features["filter_reasoning"] = reasoning.get(symbol, "No reasoning provided")
             
             enhanced_item = {
@@ -420,6 +497,7 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
             enhanced_features_list.append(enhanced_item)
 
         enhanced_features_list = _attach_quant_factor_features(enhanced_features_list, cfg=cfg, ctx=ctx)
+        enhanced_features_list = _attach_f11_fundamental_reliability(enhanced_features_list, cfg=cfg)
             
         # Calculate statistics for monitoring
         stocks_with_fundamental = len(stocks_need_fundamental)
