@@ -9,42 +9,45 @@ const metrics = [
 
 const evidence = [
   '消融实验确认模块贡献',
-  'raw_action 与 final_action 可对比',
+  '原始建议与最终订单可对比',
   '冷却触发原因可记录',
   '负贡献版本被排除',
 ];
 
 export function Page15() {
   return (
-    <main className="figure diagram-only page-15-clean">
-      <section className="final-evidence-figure">
-        <div className="final-system-card">
-          <div className="f6-large">F6</div>
-          <div className="f6-metrics">
-            {metrics.map((item) => (
-              <div key={item.label}><b>{item.value}</b><span>{item.label}</span></div>
-            ))}
-          </div>
-        </div>
-
-        <div className="final-lists">
-          <div className="kept-list">
-            <b>保留</b>
-            {kept.map((item) => <span key={item}>{item}</span>)}
-          </div>
-          <div className="rejected-list">
-            <b>不保留为主线</b>
-            {rejected.map((item) => <span key={item}>{item}</span>)}
-          </div>
-        </div>
-
-        <div className="evidence-chain">
-          {evidence.map((item, index) => (
-            <div className="evidence-node" key={item}>
-              <em>{String(index + 1).padStart(2, '0')}</em>
-              <span>{item}</span>
+    <main className="figure diagram-only page-15-clean page-15-v2">
+      <section className="final-clean-board">
+        <div className="final-metric-row">
+          {metrics.map((item) => (
+            <div className="final-metric-card" key={item.label}>
+              <b>{item.value}</b>
+              <span>{item.label}</span>
             </div>
           ))}
+        </div>
+
+        <div className="f6-formula-row">
+          <span>F6</span>
+          <i>=</i>
+          {kept.map((item) => <b key={item}>{item}</b>)}
+        </div>
+
+        <div className="final-three-columns">
+          <div className="final-column keep">
+            <h3>保留</h3>
+            {kept.map((item) => <p key={item}>{item}</p>)}
+          </div>
+          <div className="final-column avoid">
+            <h3>不作为主线</h3>
+            {rejected.map((item) => <p key={item}>{item}</p>)}
+          </div>
+          <div className="final-column evidence">
+            <h3>证据链</h3>
+            {evidence.map((item, index) => (
+              <p key={item}><em>{String(index + 1).padStart(2, '0')}</em>{item}</p>
+            ))}
+          </div>
         </div>
       </section>
     </main>

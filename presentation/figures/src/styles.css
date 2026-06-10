@@ -2081,3 +2081,116 @@ h1 {
 .json-line b {
   font-size: 25px;
 }
+
+/* Page 15 revision: compact balanced conclusion board */
+.page-15-v2 {
+  padding: 86px 92px;
+}
+.final-clean-board {
+  height: 908px;
+  display: grid;
+  grid-template-rows: 170px 150px 1fr;
+  gap: 30px;
+}
+.final-metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+}
+.final-metric-card {
+  background: #f8fafc;
+  border: 1px solid rgba(22,37,58,.13);
+  border-top: 8px solid var(--efund-blue);
+  border-radius: 10px;
+  padding: 32px 38px;
+}
+.final-metric-card b {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 52px;
+  line-height: 1;
+  color: var(--ink-navy);
+  font-weight: 400;
+}
+.final-metric-card span {
+  display: block;
+  margin-top: 18px;
+  font-size: 26px;
+  color: #54687b;
+  font-weight: 400;
+}
+.f6-formula-row {
+  display: grid;
+  grid-template-columns: 110px 42px repeat(5, 1fr);
+  gap: 16px;
+  align-items: center;
+  background: #16253a;
+  border-radius: 10px;
+  padding: 26px 30px;
+}
+.f6-formula-row span,
+.f6-formula-row i {
+  color: #a9dce5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 42px;
+  font-weight: 400;
+  font-style: normal;
+}
+.f6-formula-row b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88px;
+  color: #f8fafc;
+  background: #304963;
+  border: 1px solid rgba(248,250,252,.14);
+  border-radius: 8px;
+  font-size: 27px;
+  font-weight: 400;
+}
+.final-three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+  min-height: 0;
+}
+.final-column {
+  background: #f8fafc;
+  border: 1px solid rgba(22,37,58,.13);
+  border-radius: 10px;
+  padding: 38px 36px;
+  min-width: 0;
+}
+.final-column.keep { border-left: 9px solid var(--efund-blue); }
+.final-column.avoid { border-left: 9px solid var(--risk-carmine); }
+.final-column.evidence { border-left: 9px solid var(--trade-cyan); }
+.final-column h3 {
+  margin: 0 0 28px;
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+.final-column p {
+  margin: 0 0 16px;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #e7eff7;
+  border-radius: 7px;
+  padding: 0 22px;
+  font-size: 27px;
+  line-height: 1.18;
+  color: var(--ink-navy);
+  font-weight: 400;
+}
+.final-column.avoid p { background: #fff3f3; }
+.final-column.evidence p { background: #edf6f8; }
+.final-column p em {
+  color: #7a8a99;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 400;
+}
