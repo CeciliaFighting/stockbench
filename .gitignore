@@ -4,3 +4,7 @@ __pycache__/
 # Runtime logs, caches, and generated benchmark artifacts
 logs/
 /storage/
+
+# Frontend figure build dependencies/artifacts
+presentation/figures/node_modules/
+presentation/figures/dist/
