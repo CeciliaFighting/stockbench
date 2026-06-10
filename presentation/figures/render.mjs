@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, 'output');
 const port = 4173;
 const baseUrl = `http://127.0.0.1:${port}`;
-const pages = process.argv.slice(2).length ? process.argv.slice(2) : ['05', '06', '07', '14'];
+const pages = process.argv.slice(2).length ? process.argv.slice(2) : ['05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15'];
 
 function waitForServer(url, timeoutMs = 30000) {
   const started = Date.now();

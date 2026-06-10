@@ -14,7 +14,7 @@ npx playwright install chromium
 
 ## Render
 
-Render the current sample pages:
+Render all generated pages:
 
 ```bash
 npm run render
@@ -29,8 +29,9 @@ npm run render 06 14
 Outputs:
 
 ```text
-output/page-06.png
-output/page-14.png
+output/page-05.png
+...
+output/page-15.png
 ```
 
 Pages are laid out on a 1920 × 1080 CSS canvas and exported with 2× device scale factor as 3840 × 2160 PNGs. Figures intentionally omit PPT-level titles, page numbers, source strips, and right-corner metadata; each image contains only the core static chart.
