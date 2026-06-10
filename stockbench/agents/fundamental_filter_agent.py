@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Optional
 import os
 import json
+import hashlib
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,89 @@ def _load_prompt(name: str) -> str:
 def _prompt_version(name: str) -> str:
     base = os.path.splitext(name)[0]
     return base.replace("_", "/")
+
+
+def _shared_filter_cache_dir(cfg: Dict | None = None) -> Optional[str]:
+    """Return shared cache dir for fundamental_filter, if explicitly enabled."""
+    env_dir = os.getenv("STOCKBENCH_FUNDAMENTAL_FILTER_CACHE_DIR")
+    if env_dir:
+        return env_dir
+
+    filter_cfg = (
+        ((cfg or {}).get("agents", {}) or {})
+        .get("dual_agent", {})
+        .get("fundamental_filter", {})
+    )
+    shared_cfg = filter_cfg.get("shared_cache", {}) if isinstance(filter_cfg, dict) else {}
+    if isinstance(shared_cfg, dict) and shared_cfg.get("enabled"):
+        cache_dir = shared_cfg.get("cache_dir")
+        if cache_dir:
+            return os.path.expandvars(str(cache_dir))
+    return None
+
+
+def _shared_filter_cache_key(
+    *,
+    trade_date: str,
+    prompt_name: str,
+    llm_cfg: LLMConfig,
+    symbols: Dict,
+) -> str:
+    """Stable key intentionally ignores portfolio/history for cross-experiment reuse."""
+    payload = {
+        "schema": "fundamental_filter_shared_v1",
+        "trade_date": trade_date,
+        "prompt_name": prompt_name,
+        "model": llm_cfg.model,
+        "provider": llm_cfg.provider,
+        "temperature": llm_cfg.temperature,
+        "max_tokens": llm_cfg.max_tokens,
+        "symbols": sorted(symbols.keys()),
+    }
+    raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+
+
+def _read_shared_filter_cache(cache_dir: str, trade_date: str, cache_key: str) -> Optional[Dict]:
+    path = os.path.join(cache_dir, trade_date, f"{cache_key}.json")
+    try:
+        if not os.path.exists(path):
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        payload = data.get("payload") if isinstance(data, dict) else None
+        return payload if isinstance(payload, dict) else None
+    except Exception as exc:
+        logger.warning(f"[FUNDAMENTAL_FILTER_SHARED_CACHE] read failed: {exc}")
+        return None
+
+
+def _write_shared_filter_cache(cache_dir: str, trade_date: str, cache_key: str, payload: Dict, run_id: Optional[str]) -> None:
+    path_dir = os.path.join(cache_dir, trade_date)
+    path = os.path.join(path_dir, f"{cache_key}.json")
+    tmp_path = f"{path}.tmp"
+    try:
+        os.makedirs(path_dir, exist_ok=True)
+        data = {
+            "metadata": {
+                "ts_utc": datetime.utcnow().isoformat(),
+                "schema": "fundamental_filter_shared_v1",
+                "trade_date": trade_date,
+                "cache_key": cache_key,
+                "source_run_id": run_id,
+            },
+            "payload": payload,
+        }
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        os.replace(tmp_path, path)
+    except Exception as exc:
+        logger.warning(f"[FUNDAMENTAL_FILTER_SHARED_CACHE] write failed: {exc}")
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
 
 
 def _build_history_from_previous_decisions(previous_decisions: Optional[Dict] = None, current_features: Optional[Dict] = None) -> Dict[str, List[Dict]]:
@@ -317,11 +401,38 @@ def filter_stocks_needing_fundamental(features_list: List[Dict], cfg: Dict | Non
     
     # Call LLM for filtering
     try:
-        data, meta = client.generate_json("fundamental_filter", llm_cfg, system_prompt, user_prompt, 
-                                         trade_date=trade_date, run_id=run_id, retry_attempt=0)
+        shared_cache_dir = _shared_filter_cache_dir(cfg)
+        shared_cache_key = None
+        data = None
+        meta = {"cached": False, "latency_ms": 0}
+
+        if shared_cache_dir:
+            shared_cache_key = _shared_filter_cache_key(
+                trade_date=trade_date,
+                prompt_name=prompt_name,
+                llm_cfg=llm_cfg,
+                symbols=symbols,
+            )
+            data = _read_shared_filter_cache(shared_cache_dir, trade_date, shared_cache_key)
+            if data:
+                meta = {"cached": True, "latency_ms": 0, "shared_cache": True}
+                logger.info(
+                    f"[FUNDAMENTAL_FILTER_SHARED_CACHE] hit date={trade_date}, "
+                    f"key={shared_cache_key}, dir={shared_cache_dir}"
+                )
+
+        if data is None:
+            data, meta = client.generate_json("fundamental_filter", llm_cfg, system_prompt, user_prompt,
+                                             trade_date=trade_date, run_id=run_id, retry_attempt=0)
+            if shared_cache_dir and shared_cache_key and data and isinstance(data, dict):
+                _write_shared_filter_cache(shared_cache_dir, trade_date, shared_cache_key, data, run_id)
+                logger.info(
+                    f"[FUNDAMENTAL_FILTER_SHARED_CACHE] stored date={trade_date}, "
+                    f"key={shared_cache_key}, dir={shared_cache_dir}"
+                )
         
         logger.info(f"[FUNDAMENTAL_FILTER] LLM call completed: cached={meta.get('cached', False)}, "
-                   f"latency={meta.get('latency_ms', 0)}ms")
+                   f"latency={meta.get('latency_ms', 0)}ms, shared_cache={meta.get('shared_cache', False)}")
         
         # Parse filtering results
         if not data or not isinstance(data, dict):
