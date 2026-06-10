@@ -34,3 +34,9 @@ output/page-14.png
 ```
 
 Pages are laid out on a 1920 × 1080 CSS canvas and exported with 2× device scale factor as 3840 × 2160 PNGs. Figures intentionally omit PPT-level titles, page numbers, source strips, and right-corner metadata; each image contains only the core static chart.
+
+Style constraints:
+
+- Chinese text uses a Heiti-style font without extra artificial bolding.
+- Use flat solid colors only; do not use gradients.
+- Keep information density low and make the most important chart elements large.
