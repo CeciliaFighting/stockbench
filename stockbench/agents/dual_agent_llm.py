@@ -14,6 +14,10 @@ from stockbench.utils.formatting import round_numbers_in_obj
 from stockbench.agents.fundamental_filter_agent import filter_stocks_needing_fundamental
 from stockbench.agents.reflection_agent import generate_portfolio_reflection
 from stockbench.core.features import build_features_for_prompt
+from stockbench.core.reverse_oracle import (
+    build_reverse_oracle_context,
+    build_reverse_oracle_system_addendum,
+)
 
 
 def _prompt_dir() -> str:
@@ -441,6 +445,12 @@ def decide_batch_dual_agent(features_list: List[Dict], cfg: Dict | None = None, 
         # Use the decision agent prompt from config
         prompt_name = (cfg or {}).get("agents", {}).get("dual_agent", {}).get("decision_agent", {}).get("prompt", "decision_agent_v1.txt")
         system_prompt = _load_prompt(prompt_name)
+        reverse_oracle_addendum = build_reverse_oracle_system_addendum(cfg)
+        if reverse_oracle_addendum:
+            system_prompt += reverse_oracle_addendum
+            meta_agg["reverse_oracle_prompt_addendum"] = True
+        else:
+            meta_agg["reverse_oracle_prompt_addendum"] = False
         meta_agg["prompt_version"] = _prompt_version(prompt_name)
         
         # Get LLM configuration for decision agent
@@ -620,6 +630,19 @@ def _decide_batch_portfolio_dual_agent(features_list: List[Dict], llm_cfg: LLMCo
         history = _build_history_from_previous_decisions(previous_decisions, current_features)
         logger.info(f"[DEBUG] Dual agent decision: Historical record construction completed, containing history of {len(history)} symbols")
     
+    reverse_oracle_context = build_reverse_oracle_context(
+        features_list=features_list,
+        bars_data=bars_data,
+        cfg=cfg,
+        ctx=ctx,
+    )
+    if reverse_oracle_context:
+        meta_agg["reverse_oracle_enabled_flags"] = reverse_oracle_context.get("enabled_flags", {})
+        meta_agg["reverse_oracle_macro_panic"] = bool((reverse_oracle_context.get("global_market", {}) or {}).get("macro_panic", False))
+    else:
+        meta_agg["reverse_oracle_enabled_flags"] = {}
+        meta_agg["reverse_oracle_macro_panic"] = False
+
     # Build complete input data
     portfolio_input = {
         "portfolio_info": {
@@ -630,6 +653,8 @@ def _decide_batch_portfolio_dual_agent(features_list: List[Dict], llm_cfg: LLMCo
         "symbols": symbols,
         "history": history
     }
+    if reverse_oracle_context:
+        portfolio_input["reverse_oracle_evidence"] = reverse_oracle_context
     if reflection_context:
         reflection_meta = reflection_context.get("__meta__", {}) if isinstance(reflection_context, dict) else {}
         portfolio_input["reflection_context"] = {

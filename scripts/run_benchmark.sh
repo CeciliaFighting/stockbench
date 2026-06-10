@@ -54,7 +54,7 @@ USE_DEEPSEEK="${USE_DEEPSEEK:-false}"   # Set true or pass --use-deepseek to use
 # ╚══════════════════════════════════════════════════════════════════════════╝
 
 # Configuration file path
-CONFIG_PATH="config.yaml"
+CONFIG_PATH="${CONFIG_PATH:-config.yaml}"
 APP_MOD="stockbench.apps.run_backtest"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 if [[ "${PYTHON_BIN}" == "python" && -x ".venv/bin/python" ]]; then
@@ -68,6 +68,8 @@ AGENT_MODE="${AGENT_MODE:-dual}"
 DATA_MODE="${DATA_MODE:-offline_only}"  # auto | offline_only
 REFLECTION_AGENT="${REFLECTION_AGENT:-false}"  # true | false
 FUNDAMENTAL_FEATURES="${FUNDAMENTAL_FEATURES:-false}"  # true | false
+REVERSE_ORACLE="${REVERSE_ORACLE:-false}"  # true | false
+REVERSE_ORACLE_EVIDENCE_CARD="${REVERSE_ORACLE_EVIDENCE_CARD:-false}"  # true | false
 
 # Output directories
 OUTPUT_DIR="storage/reports/backtest"
@@ -113,7 +115,7 @@ run_backtest() {
     local LLM_PROFILE="$2"
     local CACHE_OPTION="$3"
     local EXTRA_OPTS="$4"
-    local LOG_FILE="${LOG_DIR}/${LLM_PROFILE}_${START_DATE}_${END_DATE}.log"
+    local LOG_FILE="${LOG_DIR}/${RUN_ID}_${LLM_PROFILE}_${START_DATE}_${END_DATE}.log"
     local START_TIME=$(date +%s)
     
     log_info "Starting backtest: ${RUN_ID}"
@@ -132,6 +134,16 @@ run_backtest() {
         FUNDAMENTAL_OPTION="--no-fundamental-features"
     fi
     
+    local REVERSE_ORACLE_OPTIONS=""
+    if [[ "${REVERSE_ORACLE}" == "true" || "${REVERSE_ORACLE}" == "1" || "${REVERSE_ORACLE}" == "yes" ]]; then
+        REVERSE_ORACLE_OPTIONS="${REVERSE_ORACLE_OPTIONS} --reverse-oracle"
+    elif [[ "${REVERSE_ORACLE}" == "false" || "${REVERSE_ORACLE}" == "0" || "${REVERSE_ORACLE}" == "no" ]]; then
+        REVERSE_ORACLE_OPTIONS="${REVERSE_ORACLE_OPTIONS} --no-reverse-oracle"
+    fi
+    if [[ "${REVERSE_ORACLE_EVIDENCE_CARD}" == "true" || "${REVERSE_ORACLE_EVIDENCE_CARD}" == "1" || "${REVERSE_ORACLE_EVIDENCE_CARD}" == "yes" ]]; then
+        REVERSE_ORACLE_OPTIONS="${REVERSE_ORACLE_OPTIONS} --reverse-oracle-evidence-card"
+    fi
+
     # Build backtest command
     local DEEPSEEK_OPTION=""
     if [[ "${USE_DEEPSEEK}" == "true" ]]; then
@@ -147,6 +159,7 @@ run_backtest() {
         --data-mode \"${DATA_MODE}\" \
         ${REFLECTION_OPTION} \
         ${FUNDAMENTAL_OPTION} \
+        ${REVERSE_ORACLE_OPTIONS} \
         ${DEEPSEEK_OPTION} \
         ${CACHE_OPTION} \
         ${EXTRA_OPTS}"
@@ -194,6 +207,7 @@ main() {
     log_info "  Data mode: ${DATA_MODE}"
     log_info "  Reflection agent: ${REFLECTION_AGENT}"
     log_info "  Fundamental features: ${FUNDAMENTAL_FEATURES}"
+    log_info "  Reverse oracle: ${REVERSE_ORACLE}; evidence=${REVERSE_ORACLE_EVIDENCE_CARD}"
     log_info "  LLM profile: ${LLM_PROFILE}"
     if [[ "${USE_DEEPSEEK}" == "true" || "${LLM_PROFILE}" == "deepseek-v4-flash" ]]; then
         log_info "  LLM API key source: Deepseek (DEEPSEEK_API_KEY); model: deepseek-v4-flash"
@@ -205,10 +219,11 @@ main() {
     # Run backtest tasks
     local FAILED_RUNS=0
     local PROFILE_UPPER=$(echo "${LLM_PROFILE}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    local RUN_ID_BASE="${RUN_ID_OVERRIDE:-${PROFILE_UPPER}}"
     
     # Define test configurations (use command line parameters)
     local TESTS=(
-        "${PROFILE_UPPER}:${START_DATE}:${END_DATE}:"
+        "${RUN_ID_BASE}:${START_DATE}:${END_DATE}:"
         # Define test configurations
         # Empty symbols field (after last colon) will use symbols from config.yaml
         #"${PROFILE_UPPER}:2025-03-01:2025-06-01:GS,MSFT,HD,V,SHW,CAT,MCD,UNH,AXP,AMGN,TRV,CRM,JPM,IBM,HON,BA,AMZN,AAPL,PG,JNJ"
@@ -274,6 +289,10 @@ while [[ $# -gt 0 ]]; do
             END_DATE="$2"
             shift 2
             ;;
+        --cfg)
+            CONFIG_PATH="$2"
+            shift 2
+            ;;
         --strategy)
             STRATEGY="$2"
             shift 2
@@ -311,6 +330,19 @@ while [[ $# -gt 0 ]]; do
             FUNDAMENTAL_FEATURES="true"
             shift
             ;;
+        --reverse-oracle)
+            REVERSE_ORACLE="true"
+            shift
+            ;;
+        --no-reverse-oracle)
+            REVERSE_ORACLE="false"
+            shift
+            ;;
+        --reverse-oracle-evidence-card)
+            REVERSE_ORACLE="true"
+            REVERSE_ORACLE_EVIDENCE_CARD="true"
+            shift
+            ;;
         --no-fundamental-features)
             FUNDAMENTAL_FEATURES="false"
             shift
@@ -321,6 +353,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --start-date DATE     Start date (default: ${START_DATE})"
             echo "  --end-date DATE       End date (default: ${END_DATE})"
+            echo "  --cfg PATH            Config file path (default: ${CONFIG_PATH})"
             echo "  --strategy STRATEGY   Strategy name (default: ${STRATEGY})"
             echo "  --timespan TIMESPAN   Time granularity (default: ${TIMESPAN})"
             echo "  --agent-mode MODE     Agent mode (default: ${AGENT_MODE})"
@@ -331,10 +364,12 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-reflection-agent Disable Variant 1 reflection agent"
             echo "  --fundamental-features    Enable raw fundamental feature enrichment"
             echo "  --no-fundamental-features Disable raw fundamental feature enrichment"
+            echo "  --reverse-oracle          Enable reverse-oracle features"
+            echo "  --reverse-oracle-evidence-card Enable Reverse Oracle Evidence Card"
             echo "  --help, -h            Show this help message"
             echo ""
             echo "Environment variables:"
-            echo "  START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE, REFLECTION_AGENT, FUNDAMENTAL_FEATURES"
+            echo "  CONFIG_PATH, RUN_ID_OVERRIDE, START_DATE, END_DATE, STRATEGY, TIMESPAN, AGENT_MODE, DATA_MODE, LLM_PROFILE, REFLECTION_AGENT, FUNDAMENTAL_FEATURES"
             echo "  USE_DEEPSEEK=true      Use DeepSeek V4 Flash with DEEPSEEK_API_KEY for this run"
             echo "  STOCKBENCH_DATA_CACHE_DIR Shared data cache directory; LLM cache remains worktree-local"
             echo "  DEEPSEEK_API_KEY       Required only when --use-deepseek or USE_DEEPSEEK=true is used"

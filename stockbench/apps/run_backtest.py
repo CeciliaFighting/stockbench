@@ -33,6 +33,8 @@ def main(
     agent_mode: str = typer.Option(None, help="Agent mode: dual|single (use config if empty)"),
     reflection_agent: Optional[bool] = typer.Option(None, "--reflection-agent/--no-reflection-agent", help="Enable Variant 1 reflection agent before decision agent"),
     fundamental_features: Optional[bool] = typer.Option(None, "--fundamental-features/--no-fundamental-features", help="Enable raw fundamental feature enrichment before decision agent"),
+    reverse_oracle: Optional[bool] = typer.Option(None, "--reverse-oracle/--no-reverse-oracle", help="Enable reverse-oracle features"),
+    reverse_oracle_evidence_card: Optional[bool] = typer.Option(None, "--reverse-oracle-evidence-card/--no-reverse-oracle-evidence-card", help="Enable Reverse Oracle Evidence Card"),
     # LLM profile switching
     llm_profile: str = typer.Option("efund", help="Select LLM profile to override llm section: efund|deepseek-v4-flash|openai-official|openai|gpt-oss-20b (corresponds to config.llm_profiles)"),
     use_deepseek: bool = typer.Option(False, "--use-deepseek", help="Use DeepSeek V4 Flash and DEEPSEEK_API_KEY for this run"),
@@ -162,6 +164,12 @@ def main(
         config.setdefault("agents", {}).setdefault("dual_agent", {}).setdefault("reflection_agent", {})["enabled"] = bool(reflection_agent)
     if fundamental_features is not None:
         config.setdefault("features", {}).setdefault("fundamental", {})["enabled"] = bool(fundamental_features)
+    if reverse_oracle is not None:
+        config.setdefault("reverse_oracle", {})["enabled"] = bool(reverse_oracle)
+    if reverse_oracle_evidence_card is not None:
+        config.setdefault("reverse_oracle", {})["evidence_card"] = bool(reverse_oracle_evidence_card)
+        if reverse_oracle_evidence_card:
+            config.setdefault("reverse_oracle", {})["enabled"] = True
     # Backtest summary
     if summary_llm is not None:
         config.setdefault("backtest", {})["summary_llm"] = bool(summary_llm)

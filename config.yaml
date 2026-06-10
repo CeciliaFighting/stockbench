@@ -51,6 +51,14 @@ news:
   page_limit: 100       # Page limit for fetching news
   top_k_event_count: 5  # Select the top K most important news events
 
+# Reverse-oracle research features. Keep disabled for F6 baseline.
+reverse_oracle:
+  enabled: false
+  evidence_card: false
+  panic_breadth_threshold: 0.50
+  below_20d_ma_share_threshold: 0.70
+  universe_5d_avg_return_threshold: -0.05
+
 # Portfolio configuration
 portfolio:
   total_cash: 100000  # Total capital
